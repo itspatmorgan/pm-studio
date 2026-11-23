@@ -6,6 +6,7 @@ import {
 } from '@/platform/core/artifact-lifecycle/index';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useRouterState } from '@tanstack/react-router';
+import { appPage, messageOrigin, postTarget } from '@/platform/app/data/downloaded';
 import {
   CHANNEL,
   VERSION,
@@ -24,6 +25,7 @@ export default function PreviewHost({
   href,
   title,
   surface,
+  still,
   width,
   height,
 }: {
@@ -31,6 +33,8 @@ export default function PreviewHost({
   href: string;
   title: string;
   surface: Surface;
+  // An embed that holds its motion once rendered. A page is never still.
+  still: boolean;
   width?: number;
   height?: number;
 }) {
@@ -55,18 +59,18 @@ export default function PreviewHost({
   if (latestRender.current.identity !== identity) latestRender.current = { identity, render: -1 };
   useRouterState({ select: state => state.location });
   // Router locations may omit a deployment basepath; history retains the public address.
-  const pageUrl = new URL(router.history.location.href, window.location.origin);
+  const pageUrl = new URL(router.history.location.href, window.location.href);
   interactive.current = surface === 'page' && pageUrl.searchParams.get('mode') !== 'source';
   if (pageUrl.searchParams.get('mode') === 'source') pageUrl.searchParams.delete('mode');
   const currentHref =
     surface === 'page'
       ? pageUrl.pathname + pageUrl.search + pageUrl.hash
       : import.meta.env.BASE_URL.replace(/\/$/, '') + href;
-  const config: Config = { target, href: currentHref, dark, surface };
+  const config: Config = { target, href: currentHref, dark, surface, still: surface === 'embed' && still };
   const current = useRef(config);
   current.current = config;
   // Stable URL: artifact, theme and search changes travel through configure, never a remount.
-  const [src] = useState(() => previewUrl(config, session.current, import.meta.env.BASE_URL));
+  const [src] = useState(() => previewUrl(config, session.current, appPage()));
   const send = () => {
     const config = current.current;
     if (!runtime.current) return;
@@ -79,7 +83,7 @@ export default function PreviewHost({
       kind: 'configure',
       config,
     };
-    frame.current?.contentWindow?.postMessage(message, window.location.origin);
+    frame.current?.contentWindow?.postMessage(message, postTarget());
   };
   useEffect(() => {
     const observer = new MutationObserver(() => setDark(document.documentElement.classList.contains('dark')));
@@ -94,7 +98,7 @@ export default function PreviewHost({
     lifecycleOrder.current = -1;
     armWatchdog.current();
   }, [identity]);
-  useEffect(send, [identity, currentHref, dark]);
+  useEffect(send, [identity, currentHref, dark, config.still]);
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | undefined;
     const arm = () => {
@@ -108,7 +112,7 @@ export default function PreviewHost({
         !acceptsPreview(
           event,
           frame.current?.contentWindow ?? null,
-          window.location.origin,
+          messageOrigin(),
           session.current,
           identityOf(config.target),
           runtime.current,
