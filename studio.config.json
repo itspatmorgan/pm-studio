@@ -24,5 +24,6 @@
     "v4576ka1mbpbqdp1": []
   },
   "defaultSystem": "v4576ka1mbpbqdp1",
-  "admins": []
+  "admins": [],
+  "assetLimitKB": 750
 }

@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 0.3.0 (2026-11-23)
+
+- Asset Guard's limit is a team setting: `assetLimitKB` in `studio.config.json`, also in Studio settings under General, instead of a constant and an `ALLOWLIST` in platform code. The guard reads it from the commit it checks, files tracked by Git LFS pass at any size, and its message, in CI too, links `src/platform/context/assets.md#large-files`: why Git handles large files badly, and the options in order (keep the default, raise the limit, Git LFS or media hosting). **Breaking:** add `"assetLimitKB": 750` to `studio.config.json`, and track any files you listed in the removed `ALLOWLIST` with Git LFS or raise the limit. Thanks @lockwk.
+- The asset-size and scope checks read file names with accents or symbols, such as `café.jpg`, instead of crashing the commit. Thanks @lockwk.
+- One file without its permanent identity no longer breaks every page of its prototype. It stays out of the prototype's navigation until it has one, and the terminal names it. Thanks @rostislavpeska.
+
+### Updating from 0.2.0
+
+Follow the [manual upgrade guidance](src/platform/context/ownership.md#updating-a-studio) and preserve local content and settings. Then:
+
+- Add `"assetLimitKB": 750` to `studio.config.json`, or the limit your team wants. Until it's declared, `pnpm check` and the commit hook stop and name the missing line.
+- If you added paths to `ALLOWLIST` in `check-asset-size.js`, track those files with Git LFS or raise the limit; see [Large files](src/platform/context/assets.md#large-files).
+
+## 0.2.0 (2026-11-13)
+
 - Turning a module off or removing it never breaks your studio. A module whose library your code imports keeps that code working while it is off (DialKit's dials keep their values, with no panel or menus), and removing it rewrites that code into plain values first. A module that can do neither is refused, in Studio settings and the CLI, naming the files that use it.
 - DialKit: tune a prototype view with live dials, then press **Save to code** to write the values into the view as its new defaults. Right-click a view and choose **Add DialKit**, ask your agent for the dials you want, and **Remove DialKit** when you're done; the design stays as tuned. Hide the panel from the prototype's menu or with ⌘⇧;. It works with and without a design system, and never shows on published sites or embedded views. The Feedback Inbox overview and the Design Studio Marketing landing v3 show it in use. It's an optional module, on by default; turn it off in Studio settings.
 - Modules can add actions to the menus of file types they don't own (`ModuleApp.artifactActions`), and a module library may load a package's own stylesheet.
@@ -33,7 +48,7 @@
 - CLI commands no longer tell you to restart the dev server after configuration, module, or system changes; it already restarts itself.
 - When the CLI, an agent, or another tab changes the studio's configuration, open tabs show **Applying changes** until the restarted studio has loaded, instead of the old studio and then a blank page. Leaving Studio settings while a save applies no longer keeps that screen over every page in the tab. Starting the studio, or turning a module on or off, no longer reloads the page a second time once a view loads its system's packages.
 
-- Describe how to propose an improvement and what happens next in `CONTRIBUTING.md`, with a feature proposal issue form. Maintainers follow a new [community contributions](src/platform/context/community-contributions.md) guide to assess, adapt, release, and credit outside work.
+- Describe how to propose an improvement and what happens next in `CONTRIBUTING.md`, with a feature proposal issue form. Maintainers follow a new [community contributions](src/platform/context/maintainers/community-contributions.md) guide to assess, adapt, release, and credit outside work.
 - Report bugs through a bug report issue form. Maintainers triage each issue as now, later, or close, and reply with the outcome; the community contributions guide gives the decision rules and the brief an agent drafts for the maintainer.
 
 ## 0.1.3 (2026-11-01)
