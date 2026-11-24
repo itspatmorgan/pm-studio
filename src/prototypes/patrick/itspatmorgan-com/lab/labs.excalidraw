@@ -26,7 +26,8 @@
     {
       "customData": {
         "frame": true,
-        "hideLinkIcon": true
+        "hideLinkIcon": true,
+        "viewport": 1440
       },
       "height": 225,
       "id": "mvyyn36t3aasl7",
@@ -43,7 +44,8 @@
     {
       "customData": {
         "frame": true,
-        "hideLinkIcon": true
+        "hideLinkIcon": true,
+        "viewport": 1440
       },
       "height": 638,
       "id": "mvyyn36up5dl02",
@@ -60,7 +62,8 @@
     {
       "customData": {
         "frame": true,
-        "hideLinkIcon": true
+        "hideLinkIcon": true,
+        "viewport": 1440
       },
       "height": 268,
       "id": "mvyyn36vaffqax",
