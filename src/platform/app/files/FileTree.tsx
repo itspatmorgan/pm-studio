@@ -292,7 +292,8 @@ export type FileTreePolicy = {
   // The order of the rows, on top of the prototype's order: a section can put some first, such as a visual's selected
   // version. It gets every level of the tree and returns it rearranged, never with rows added or removed.
   arrange?(nodes: FileNode[], context: FileTreeContext): FileNode[];
-  // A short mark after an item's name, such as a version's status. Return nothing for an item without one.
+  // A short mark after an item's name, such as a version's status, also on a bundled folder's row (for the item it
+  // opens). Return nothing for an item without one.
   badge?(item: Artifact, context: FileTreeContext): ReactNode;
   // Actions other modules add to an item's menu; the prototype navigation passes ModuleApp.artifactActions.
   artifactActions?(context: ArtifactActionContext, manifest: Manifest): readonly ArtifactAction[];
@@ -830,6 +831,7 @@ export default function FileTree({
                   <span className='min-w-0 flex-1 truncate' title={repoPath(proto, bundled.path)}>
                     {policy.bundleLabel?.(node) ?? artifactLabel(bundled.path, proto)}
                   </span>
+                  {policy.badge?.(bundled, { proto, manifest })}
                 </Link>,
               )}
               {createField(node.path, depth)}

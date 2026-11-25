@@ -9,7 +9,7 @@
 //   next one, sits on the arrow between them, and an inspector for the version on stage with its flag (Pick,
 //   Shortlist, Reject) and that direction. The panel keeps one small height however many versions there are: the chain
 //   scrolls sideways and rejected versions fold to stubs. Keys do the routine: ← → step, P S X U flag, C compare, D
-//   direction. Flags and notes save to _iterations.json through the module's route (server.ts).
+//   direction. Flags and notes show at once and save to _iterations.json through the module's route (server.ts).
 //
 // Performance: only the stage plays; thumbnails are still; contact sheet cells play while pointed at.
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactElement } from 'react';
@@ -29,7 +29,7 @@ import { callModule, canChangePrototype, contribution, useManifest, useMe } from
 import { cn } from '#studio/runtime';
 import { Button, Textarea, Tooltip, TooltipContent, TooltipTrigger, toast } from '#studio/components';
 import { FORMATS } from './lib/formats.ts';
-import { Live, data, leadOf, piecesOf, useSize, versionHref, versionName } from './shared.tsx';
+import { Live, StatusGlyph, data, leadOf, piecesOf, useSize, versionHref, versionName } from './shared.tsx';
 import type { Status, VisualEntry, VisualProject, VisualVersion } from './visuals.ts';
 
 // The flags a creative director sets while reviewing, with their keys. A version with none is still being explored.
@@ -44,12 +44,6 @@ const LABEL: Record<Status, string> = {
   selected: 'Picked',
   rejected: 'Rejected',
 };
-const DOT: Record<Status, string> = {
-  exploring: 'bg-muted-foreground/40',
-  shortlisted: 'bg-foreground/70',
-  selected: 'bg-info-foreground',
-  rejected: 'bg-transparent ring-1 ring-muted-foreground/50',
-};
 
 // Changes one version's status or note through the module's own route (server.ts), which edits only that version's entry
 // in _iterations.json, so whatever an agent wrote to the others stays.
@@ -60,8 +54,10 @@ function useSave(proto: Prototype) {
   return async (studioId: string, change: { status?: Status; note?: string }) => {
     try {
       await saveRecord(proto.id, studioId, change);
+      return true;
     } catch (error) {
       toast.add({ title: `Couldn't save: ${(error as Error).message}` });
+      return false;
     }
   };
 }
@@ -284,7 +280,7 @@ function Direction({
         </span>
       </button>
       {open && editable && (
-        <div className='absolute bottom-full left-2 z-20 mb-2 w-[min(420px,calc(100%-16px))] rounded-xl border border-border bg-popover p-3 shadow-lg'>
+        <div className='absolute bottom-full left-2 z-20 mb-2 w-[min(420px,calc(100%-16px))] origin-bottom-left rounded-xl border border-border bg-popover p-3 shadow-lg animate-in fade-in-0 zoom-in-95 duration-150 ease-out motion-reduce:animate-none'>
           <p className='mb-2 text-xs text-muted-foreground'>
             Direction from {name}. Copying the prompt asks the agent for {next}.
           </p>
@@ -331,6 +327,7 @@ function Versions({
   directing,
   onDirecting,
   onFlag,
+  onNote,
   onPick,
 }: {
   project: VisualProject;
@@ -344,10 +341,10 @@ function Versions({
   directing: boolean;
   onDirecting: (open: boolean) => void;
   onFlag: (status: Status) => void;
+  onNote: (note: string) => Promise<void>;
   onPick: (version: VisualVersion) => void;
 }) {
   const [open, setOpen] = useRemembered('visuals:versions', true);
-  const save = useSave(proto);
   const versions = visual.versions;
   const rejected = versions.filter(v => v.status === 'rejected').length;
   const chain = useRef<HTMLOListElement>(null);
@@ -368,7 +365,7 @@ function Versions({
           </Tip>
           <span className='text-xs font-semibold text-foreground tabular-nums'>{name}</span>
           <span className='mr-2 text-xs text-muted-foreground'>{LABEL[current.status]}</span>
-          <ol aria-label='Versions' className='flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden'>
+          <ol aria-label='Versions' className='flex min-w-0 flex-1 items-center gap-0.5 overflow-hidden'>
             {versions.map(v => (
               <li key={v.studioId} className='flex'>
                 <button
@@ -376,11 +373,12 @@ function Versions({
                   aria-label={`${versionName(v)}, ${LABEL[v.status]}`}
                   onClick={() => onPick(v)}
                   className={cn(
-                    'size-2 rounded-full',
-                    DOT[v.status],
-                    v.studioId === current.studioId && 'ring-2 ring-foreground ring-offset-1 ring-offset-background',
+                    'grid size-5 place-items-center rounded-full outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring',
+                    v.studioId === current.studioId && 'bg-muted ring-1 ring-foreground/30',
                   )}
-                />
+                >
+                  <StatusGlyph status={v.status} size={10} />
+                </button>
               </li>
             ))}
           </ol>
@@ -422,7 +420,7 @@ function Versions({
               editable={editable}
               open={directing}
               onOpenChange={onDirecting}
-              onSave={note => save(current.studioId, { note })}
+              onSave={onNote}
             />
           </div>
           <ol
@@ -460,8 +458,10 @@ function Versions({
                         type='button'
                         aria-label={label}
                         onClick={() => onPick(version)}
-                        className='mb-4 h-10 w-2 rounded-sm bg-muted-foreground/20 outline-none hover:bg-muted-foreground/40 focus-visible:ring-2 focus-visible:ring-ring'
-                      />
+                        className='group mb-4 flex h-10 w-4 justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                      >
+                        <span className='h-full w-1.5 rounded-sm bg-muted-foreground/20 group-hover:bg-muted-foreground/40' />
+                      </button>
                     </Tip>
                   ) : (
                     <button
@@ -484,7 +484,7 @@ function Versions({
                         )}
                       />
                       <span className='flex items-center gap-1 text-[10px] leading-3 text-muted-foreground tabular-nums'>
-                        <span aria-hidden className={cn('size-1.5 rounded-full', DOT[version.status])} />
+                        <StatusGlyph status={version.status} size={9} />
                         <span className={cn(on && 'font-medium text-foreground')}>{versionName(version)}</span>
                       </span>
                     </button>
@@ -525,8 +525,36 @@ function PiecePage({
   const index = data(manifest)!;
   const me = useMe();
   const navigate = useNavigate();
-  const save = useSave(proto);
-  const versions = visual.versions;
+  const persist = useSave(proto);
+  // Flags and directions show at once: a change is applied here while it's written to _iterations.json, and dropped
+  // once the manifest says the same.
+  const [pending, setPending] = useState<Record<string, { status?: Status; note?: string }>>({});
+  useEffect(() => {
+    setPending(was => {
+      const left = Object.entries(was).filter(([id, change]) => {
+        const real = visual.versions.find(v => v.studioId === id);
+        return real && ((change.status && change.status !== real.status) || (change.note !== undefined && change.note !== (real.note ?? '')));
+      });
+      return left.length === Object.keys(was).length ? was : Object.fromEntries(left);
+    });
+  }, [visual]);
+  const save = (studioId: string, change: { status?: Status; note?: string }) => {
+    setPending(was => {
+      const next = { ...was, [studioId]: { ...was[studioId], ...change } };
+      // Picking a version moves the piece's previous pick to the shortlist, as the route does.
+      if (change.status === 'selected')
+        for (const v of visual.versions)
+          if (v.studioId !== studioId && (was[v.studioId]?.status ?? v.status) === 'selected')
+            next[v.studioId] = { ...next[v.studioId], status: 'shortlisted' };
+      return next;
+    });
+    // A change that couldn't be written goes back to what's on disk.
+    return persist(studioId, change).then(saved => {
+      if (!saved) setPending({});
+    });
+  };
+  const versions = visual.versions.map(v => (pending[v.studioId] ? { ...v, ...pending[v.studioId] } : v));
+  const shownVisual = { ...visual, versions, selected: versions.find(v => v.status === 'selected') ?? null };
   const current = versions.find(v => v.path === item.path)!;
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [directing, setDirecting] = useState(false);
@@ -655,7 +683,7 @@ function PiecePage({
       </div>
       <Versions
         project={project}
-        visual={visual}
+        visual={shownVisual}
         proto={proto}
         current={current}
         pinned={pinned}
@@ -665,6 +693,7 @@ function PiecePage({
         directing={directing}
         onDirecting={setDirecting}
         onFlag={flag}
+        onNote={note => save(current.studioId, { note })}
         onPick={open}
       />
     </main>

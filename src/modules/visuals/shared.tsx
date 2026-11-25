@@ -224,3 +224,32 @@ export function Tiles({
     </div>
   );
 }
+
+// A version's status as a glyph that reads without color: open ○, shortlisted ◐, picked ● with a check, rejected ⊘.
+// The same marks in the versions panel and the navigation.
+export function StatusGlyph({ status, size = 12, className }: { status: VisualVersion['status']; size?: number; className?: string }) {
+  const r = 5.25;
+  return (
+    <svg width={size} height={size} viewBox='0 0 12 12' aria-hidden className={className}>
+      {status === 'selected' ? (
+        <>
+          <circle cx='6' cy='6' r='6' className='fill-info-foreground' />
+          <path d='M3.6 6.2 5.2 7.8 8.4 4.4' fill='none' strokeWidth='1.4' strokeLinecap='round' strokeLinejoin='round' className='stroke-background' />
+        </>
+      ) : (
+        <>
+          <circle
+            cx='6'
+            cy='6'
+            r={r}
+            fill='none'
+            strokeWidth='1.5'
+            className={status === 'shortlisted' ? 'stroke-foreground/80' : 'stroke-muted-foreground/60'}
+          />
+          {status === 'shortlisted' && <path d={`M6 ${6 - r} A${r} ${r} 0 0 1 6 ${6 + r} Z`} className='fill-foreground/80' />}
+          {status === 'rejected' && <path d='M2.6 9.4 9.4 2.6' strokeWidth='1.5' className='stroke-muted-foreground/60' />}
+        </>
+      )}
+    </svg>
+  );
+}

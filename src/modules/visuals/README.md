@@ -74,11 +74,14 @@ No new file types: every version is a view (`.tsx`), as the brief decides.
   the note that says what to change next; saving it with ⌘↵ copies a prompt for the agent. The chain beside it lists
   the versions, with a version's direction as a dot on the arrow to the next one, and folds rejected versions to
   stubs. Keys: ← → step (skipping folded versions), P S X flag, U unflag, C compare, D direction, Esc.
+  Flags and directions show at once (applied on the page while they're written) and keyboard actions don't animate.
+  Statuses read without color, as glyphs (`StatusGlyph` in `shared.tsx`): open ○, shortlisted ◐, picked ● with a
+  check, rejected ⊘.
 - `server.ts` is the route the panel saves through (`POST /__studio/visuals/record`): it changes one version's status or
   note in the project's `_iterations.json`, for its maintainers only, keeping every other entry as it is on disk, and
   moves the piece's previous selection to shortlisted when another is selected.
 - `nav.tsx` is the project's navigation, the file tree policy under the heading "Pieces": All pieces first
-  (`Leading`), then the pieces in the project's order, one row each named for
+  (`Leading`), then the pieces, each row ending with its decision (`badge`: a quiet picked glyph, or the open one) in the project's order, one row each named for
   its folder (the folder bundles its versions, and its row opens the lead one and stays lit on any of them), then the
   project's own files, then `exports/`. Piece folders and `exports/` can't be renamed or moved from the tree. The
   piece page's film strip lists the versions.
@@ -118,7 +121,8 @@ These platform changes were made in this studio for Visuals and Snapshots, and a
   `src/platform/node/lib/module-builds.js`, the type in `src/platform/core/modules/index.ts`).
 - **The front page with a board.** `Home.tsx` gives the first screen to the greeting and a large search over a faint dot
   field, and the board starts below it under a fade that lifts when you scroll.
-- **Tree badges, order and bundled folders.** `FileTreePolicy` takes `arrange(nodes, context)` and `badge(item, context)`;
+- **Tree badges, order and bundled folders.** `FileTreePolicy` takes `arrange(nodes, context)` and `badge(item, context)`,
+  which also marks a bundled folder's row for the item it opens;
   `bundleItem` also gets the context, `bundleLabel(node)` names a bundled folder's row for the folder, `heading`
   replaces "Artifacts" over the list, and `Leading` puts rows of the section's own first in the list (All pieces) (`src/platform/app/files/FileTree.tsx`, `FileTreeContext` in `#studio/ui`), the brief's "item badges" and "policy
   ordering" hooks.

@@ -8,7 +8,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { GridViewIcon } from '@hugeicons/core-free-icons';
 import { artifactLabel, type Artifact, type FileNode } from '#studio/data';
 import { navLinkClass, navLinkStyle, type FileTreeContext, type FileTreePolicy } from '#studio/ui';
-import { data, projectHref } from './shared.tsx';
+import { StatusGlyph, data, projectHref, versionName } from './shared.tsx';
 import type { VisualEntry } from './visuals.ts';
 
 const EXPORTS = 'exports';
@@ -31,6 +31,19 @@ function bundleItem(node: FileNode, items: Map<string, Artifact>, context: FileT
   return lead ? items.get(lead.path) : undefined;
 }
 
+// A piece's row ends with whether it's decided: a quiet picked glyph, or the open one, which stands out, while no
+// version is picked.
+function badge(item: Artifact, context: FileTreeContext) {
+  const piece = piecesOf(context).find(p => p.versions.some(v => v.path === item.path));
+  if (!piece) return null;
+  const label = piece.selected ? `Picked ${versionName(piece.selected)}` : 'No pick yet';
+  return (
+    <span title={label} aria-label={label} className='ml-auto flex shrink-0 items-center pl-1'>
+      <StatusGlyph status={piece.selected ? 'selected' : 'exploring'} size={11} className={piece.selected ? 'opacity-50' : undefined} />
+    </span>
+  );
+}
+
 // exports/ and each piece's folder (a top-level folder holding versions) stay where they are.
 const standard = (node: FileNode) =>
   node.path === EXPORTS || (!node.path.includes('/') && Boolean(node.children?.some(c => VERSION.test(c.name))));
@@ -46,6 +59,7 @@ export const visualPolicy = (base: FileTreePolicy): FileTreePolicy => ({
   movable: node => !standard(node) && (base.movable?.(node) ?? true),
   arrange,
   bundleItem,
+  badge,
   // A piece's row is named for its folder, as on disk.
   bundleLabel: node => artifactLabel(node.name),
 });
