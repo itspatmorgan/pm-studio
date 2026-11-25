@@ -1,7 +1,7 @@
 // Supported runtime navigation for prototype code. Paths remain authoring
 // dependencies; the supplied inventory resolves them to permanent public URLs.
-import { createContext, createElement, useContext, type ComponentPropsWithoutRef, type ReactElement } from 'react';
-import { Link as RouterLink, useNavigate as useRouterNavigate } from '@tanstack/react-router';
+import { createContext, createElement, useContext, useMemo, type ComponentPropsWithoutRef, type ReactElement } from 'react';
+import { Link as RouterLink, useNavigate as useRouterNavigate, useRouterState } from '@tanstack/react-router';
 
 export type PrototypeNavigationScope = {
   studioId?: string;
@@ -88,4 +88,11 @@ export function useNavigate(): (to: string) => void {
   const navigate = useRouterNavigate();
   const resolve = usePrototypeArtifactHref();
   return to => void navigate({ to: targetHref(resolve, to) as never });
+}
+
+/** The query string of the address this view was opened at, such as `?seed=42` in a shared link, so a view can start from
+ *  settings in its URL. It reads the view's own address, never the preview frame's, and follows navigation. */
+export function useSearchParams(): URLSearchParams {
+  const search = useRouterState({ select: state => state.location.searchStr });
+  return useMemo(() => new URLSearchParams(search), [search]);
 }

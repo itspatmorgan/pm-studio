@@ -1,7 +1,7 @@
 ---
 title: Generative art
 description: The deterministic pattern engine behind Lab previews, article heroes, and Pattern Engine.
-source: Ported from itspatmorgan.com's src/lab/editorial-art/.
+source: From @itspatmorgan/kit (itspatmorgan.com's packages/kit/src/generative-art/).
 ---
 
 ## When to use
@@ -10,4 +10,4 @@ Use `LiveEditorialVisual` for an article's hero, passing the article's `visual` 
 
 Every pattern is deterministic: the same generator settings and seed always draw the same image. Five generators are available: flow field, dot grid, isoline, Voronoi, and strange attractor. Motion modes are static, reveal, and ambient, and all respect reduced motion.
 
-Pattern Engine, the Lab view in the itspatmorgan.com prototype, is the editor for these settings.
+Pattern Engine, its own prototype in this studio, is the editor for these settings, and every article's visual links to it.

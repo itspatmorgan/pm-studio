@@ -217,11 +217,9 @@ function parseGenerator(params: URLSearchParams, fallback: GeneratorConfig): Gen
   return { ...base, ...shared };
 }
 
-function initialStateFromUrl(): AppState {
-  if (typeof window === 'undefined') return defaultState();
-  const params = new URLSearchParams(window.location.search);
+function initialStateFromSearch(params: URLSearchParams): AppState {
   const state = defaultState();
-  if (!window.location.search) return state;
+  if (!params.size) return state;
   const generator = parseGenerator(params, state.generator);
 
   return {
@@ -491,7 +489,8 @@ function SettingsRow({
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function EditorialArtTool() {
+/** The Pattern Engine editor. `search` holds settings from a shared link, such as an article visual's link, to start from. */
+export default function EditorialArtTool({ search }: { search: URLSearchParams }) {
   const canvasRef    = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const generatorMenuRef = useRef<HTMLDivElement>(null);
@@ -507,7 +506,7 @@ export default function EditorialArtTool() {
   const [mobileControlsOpen, setMobileControlsOpen] = useState(false);
   const [panelScrolling, setPanelScrolling] = useState(false);
   const [panelScrollThumb, setPanelScrollThumb] = useState({ height: 0, top: 0, visible: false });
-  const [state, setState]             = useState<AppState>(initialStateFromUrl);
+  const [state, setState]             = useState<AppState>(() => initialStateFromSearch(search));
 
   useEffect(() => {
     const update = () => {
