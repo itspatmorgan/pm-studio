@@ -377,8 +377,8 @@ importers:
         specifier: 1.1.9
         version: 1.1.9(react@19.3.0)
       '@itspatmorgan/kit':
-        specifier: github:itspatmorgan/itspatmorgan.com#f68d85c2e0118e1e2f9bebf48f520f330e7fc8a3&path:/packages/kit
-        version: https://codeload.github.com/itspatmorgan/itspatmorgan.com/tar.gz/f68d85c2e0118e1e2f9bebf48f520f330e7fc8a3#path:/packages/kit(@fontsource/comic-neue@5.3.0)(@fontsource/ibm-plex-mono@5.3.0)(@hugeicons/core-free-icons@4.2.3)(@hugeicons/react@1.1.9(react@19.3.0))(motion@12.43.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        specifier: github:itspatmorgan/itspatmorgan.com#5cfaa94485904f94e8db416c6c89dd18211dc14d&path:/packages/kit
+        version: https://codeload.github.com/itspatmorgan/itspatmorgan.com/tar.gz/5cfaa94485904f94e8db416c6c89dd18211dc14d#path:/packages/kit(@fontsource/comic-neue@5.3.0)(@fontsource/ibm-plex-mono@5.3.0)(@hugeicons/core-free-icons@4.2.3)(@hugeicons/react@1.1.9(react@19.3.0))(motion@12.43.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -744,8 +744,8 @@ packages:
     peerDependencies:
       react: '>=16.0.0'
 
-  '@itspatmorgan/kit@https://codeload.github.com/itspatmorgan/itspatmorgan.com/tar.gz/f68d85c2e0118e1e2f9bebf48f520f330e7fc8a3#path:/packages/kit':
-    resolution: {gitHosted: true, integrity: sha512-0oJTsYeEYH05dtHdzgTZ+isXV3rXkuEbogoXDFCDyOwbFD/a4MzHruPUfUdMJmZEBZfG++aIR+l4wNFdha41Cg==, path: /packages/kit, tarball: https://codeload.github.com/itspatmorgan/itspatmorgan.com/tar.gz/f68d85c2e0118e1e2f9bebf48f520f330e7fc8a3}
+  '@itspatmorgan/kit@https://codeload.github.com/itspatmorgan/itspatmorgan.com/tar.gz/5cfaa94485904f94e8db416c6c89dd18211dc14d#path:/packages/kit':
+    resolution: {gitHosted: true, integrity: sha512-Cm90C+gR6yGQHNyAf+ahK7K3CDpzRD5qhSxz5zrGXtYSP0EgGDINX9ZhYpIajLSWJDywz9uxOhcMIwBu3Cp9oQ==, path: /packages/kit, tarball: https://codeload.github.com/itspatmorgan/itspatmorgan.com/tar.gz/5cfaa94485904f94e8db416c6c89dd18211dc14d}
     version: 0.0.0
     peerDependencies:
       '@fontsource/comic-neue': ^5.0.0
@@ -4951,7 +4951,7 @@ snapshots:
     dependencies:
       react: 19.3.0
 
-  '@itspatmorgan/kit@https://codeload.github.com/itspatmorgan/itspatmorgan.com/tar.gz/f68d85c2e0118e1e2f9bebf48f520f330e7fc8a3#path:/packages/kit(@fontsource/comic-neue@5.3.0)(@fontsource/ibm-plex-mono@5.3.0)(@hugeicons/core-free-icons@4.2.3)(@hugeicons/react@1.1.9(react@19.3.0))(motion@12.43.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)':
+  '@itspatmorgan/kit@https://codeload.github.com/itspatmorgan/itspatmorgan.com/tar.gz/5cfaa94485904f94e8db416c6c89dd18211dc14d#path:/packages/kit(@fontsource/comic-neue@5.3.0)(@fontsource/ibm-plex-mono@5.3.0)(@hugeicons/core-free-icons@4.2.3)(@hugeicons/react@1.1.9(react@19.3.0))(motion@12.43.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@fontsource/comic-neue': 5.3.0
       '@fontsource/ibm-plex-mono': 5.3.0

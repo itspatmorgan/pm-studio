@@ -10,7 +10,7 @@
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@hugeicons/core-free-icons": "4.2.3",
     "@hugeicons/react": "1.1.9",
-    "@itspatmorgan/kit": "github:itspatmorgan/itspatmorgan.com#f68d85c2e0118e1e2f9bebf48f520f330e7fc8a3&path:/packages/kit",
+    "@itspatmorgan/kit": "github:itspatmorgan/itspatmorgan.com#5cfaa94485904f94e8db416c6c89dd18211dc14d&path:/packages/kit",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "html-to-image": "^1.11.13",
