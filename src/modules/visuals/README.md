@@ -54,15 +54,22 @@ No new file types: every version is a view (`.tsx`), as the brief decides.
   files) and the Snapshots list, and puts the index in the manifest as `contributions.visuals`. The published manifest
   carries it, so itspatmorgan.com reads the same list.
 - `app.tsx` adds Visuals to the rail, the `/visuals` route, a visual's page and navigation, and the front page board.
-- `VisualsIndex.tsx` is the index, on the Prototypes gallery's frame: search (`?q=`), filters for collection, family and
-  status (`?collection=`, `?family=`, `?status=selected|open`), grouping by collection (`?group=collection`), and the
-  shared cards or list switch. Each card shows the visual on a 16:10 mat so every format fits one grid. Until the
-  render service draws posters, the picture is the visual drawn live, mounted only while its card is near the screen
-  and let go once it is well off it, so a long index keeps about a screenful alive.
-- `VisualPage.tsx` is what `/visuals/<id>` shows: every version drawn live at its format, the selected one first and
-  rejected ones last, with its status and note. Opening a version shows it in the viewer.
+- `VisualsIndex.tsx` is the index, on the Prototypes gallery's frame (title, a line, search on the right) but with one
+  view, since it is a picture library: the visuals themselves in justified rows that keep each format's true shape,
+  grouped by collection, with nothing around a visual but its name. Search (`?q=`) and one collection menu
+  (`?collection=`) narrow it.
+- `VisualPage.tsx` is what `/visuals/<id>` shows: a stage with one version large and playing (← and → step through
+  them), a strip of every version in order, and a panel with the version's status and note. Compare pins the version on
+  stage and puts another beside it, which the strip and arrow keys then change. "Iterate" copies a prompt for the agent
+  to make the next version.
+- `server.ts` is the route the panel saves through (`POST /__studio/visuals/record`): it changes one version's status or
+  note in `_iterations.json`, for the visual's maintainers only, keeping every other entry as it is on disk, and moves
+  the previous selection to shortlisted when another is selected.
 - `nav.tsx` is the visual's file tree policy: `iterations/` and `exports/` are fixed and follow the working files,
   each version shows its status, and versions sort as on the page.
+- **Performance.** Every live preview is mounted only near the screen and held still (the view module's still embeds)
+  unless it is the one being looked at: the stage plays; index tiles play while pointed at; board tiles play while on
+  screen and pause behind the peek; strip thumbnails never play.
 - `Board.tsx` is Snapshots on the front page: justified rows
   where each tile grows by its format's aspect ratio, a spotlight on hover with the name following the pointer, and a
   peek that grows out of its tile once the live view has drawn; `shared.tsx` holds the live preview and origins.
@@ -88,6 +95,12 @@ These platform changes were made in this studio for Visuals and Snapshots, and a
   (`src/platform/app/modules.ts`). `PrototypeNav` uses `policy(base)` for that section's items, and the section item
   route shows `landing` at the item's own address instead of its first item (`src/platform/app/router.tsx`,
   `PrototypeLayout.tsx`). Prototypes could use the same slot for a cover page.
+- **Module records rebuild the manifest.** `ModuleBuild.records` names files a module's build reads inside items
+  (`_iterations.json`); `src/platform/node/build/vite-manifest-watch-plugin.js` rebuilds the manifest when one changes,
+  as it does for `meta.json`, so a status set by the app or an agent shows at once (`contributedRecords` in
+  `src/platform/node/lib/module-builds.js`, the type in `src/platform/core/modules/index.ts`).
+- **The front page with a board.** `Home.tsx` gives the first screen to the greeting and a large search over a faint dot
+  field, and the board starts below it under a fade that lifts when you scroll.
 - **Tree badges and order.** `FileTreePolicy` takes `arrange(nodes, context)` and `badge(item, context)`
   (`src/platform/app/files/FileTree.tsx`, `FileTreeContext` in `#studio/ui`), the brief's "item badges" and "policy
   ordering" hooks.

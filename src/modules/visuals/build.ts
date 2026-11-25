@@ -18,6 +18,8 @@ const BOARD = ['board-wide', 'board-companion', 'board-card'];
 // version's status and note, keyed by the view's permanent id). Puts the index in the manifest and counts each problem,
 // so a visual whose family, format or selection is wrong fails the build instead of drawing wrongly on a board.
 export default {
+  // A status or note changed in a visual's record, by the app or an agent, shows at once.
+  records: ['_iterations.json'],
   manifest({ root, out }) {
     let errors = 0;
     const fail = (where: string, message: string) => {

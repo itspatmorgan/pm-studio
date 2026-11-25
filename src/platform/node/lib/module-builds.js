@@ -28,3 +28,9 @@ export function contributedSourceFiles(root, manifest) {
 export function contributedWatchDirs() {
   return moduleBuilds().flatMap(([, build]) => (build.watch ?? []).map(dir => path.join(ROOT, dir)));
 }
+
+// File names the enabled modules' hooks read from inside prototype-shaped folders, such as a visual's _iterations.json,
+// so an edit to one rebuilds the manifest like an edit to meta.json does.
+export function contributedRecords() {
+  return new Set(moduleBuilds().flatMap(([, build]) => build.records ?? []));
+}

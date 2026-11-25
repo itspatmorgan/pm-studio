@@ -77,6 +77,7 @@ export function Live({
   width,
   height,
   interactive,
+  still = false,
 }: {
   visual: VisualEntry;
   version?: VisualVersion;
@@ -84,6 +85,9 @@ export function Live({
   width: number;
   height: number;
   interactive?: boolean;
+  // Holds the view's motion a moment after it draws, so it costs nothing while nobody is looking at it (the view
+  // module's still embeds). Turning it off plays it again from where it stopped.
+  still?: boolean;
 }) {
   if (!origin || !width) return <div className='h-full w-full bg-muted/50' />;
   return (
@@ -94,6 +98,7 @@ export function Live({
       viewport={sizeOf(visual, version).width}
       chrome='bare'
       interaction={interactive ? 'interactive' : 'inert'}
+      still={still}
       label={`${visual.title}, ${versionName(version)}`}
       className='h-full w-full'
     />
@@ -124,4 +129,24 @@ export function useStable(visuals: VisualEntry[]) {
   const ref = useRef({ key, visuals });
   if (ref.current.key !== key) ref.current = { key, visuals };
   return ref.current.visuals;
+}
+
+// Justified rows, as on a photo site: items keep their aspect ratios, and each row is scaled so its items fill the width
+// exactly at one shared height, close to `target`. The last row keeps the target height rather than stretching.
+export function justify<T>(items: T[], aspectOf: (item: T) => number, width: number, gap: number, target: number) {
+  const rows: { items: T[]; height: number }[] = [];
+  let row: T[] = [];
+  let sum = 0;
+  for (const item of items) {
+    row.push(item);
+    sum += aspectOf(item);
+    const height = (width - gap * (row.length - 1)) / sum;
+    if (height <= target) {
+      rows.push({ items: row, height });
+      row = [];
+      sum = 0;
+    }
+  }
+  if (row.length) rows.push({ items: row, height: Math.min(target, (width - gap * (row.length - 1)) / sum) });
+  return rows;
 }

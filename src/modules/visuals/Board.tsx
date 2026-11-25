@@ -6,7 +6,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { Link } from '@tanstack/react-router';
 import type { ArtifactContext, Manifest } from '#studio/data';
 import { cn } from '#studio/runtime';
-import { Go, Live, data, sizeOf, useOrigins, useSize, useStable } from './shared.tsx';
+import { Go, Live, data, sizeOf, useNear, useOrigins, useSize, useStable } from './shared.tsx';
 import type { Snapshot } from './snapshots.ts';
 import type { VisualEntry } from './visuals.ts';
 
@@ -37,6 +37,7 @@ function Tile({
   piece,
   origin,
   dimmed,
+  paused,
   onHover,
   onOpen,
   tileRef,
@@ -44,11 +45,14 @@ function Tile({
   piece: Piece;
   origin?: ArtifactContext;
   dimmed: boolean;
+  paused: boolean;
   onHover: (on: boolean) => void;
   onOpen: (from: DOMRect) => void;
   tileRef: (el: HTMLButtonElement | null) => void;
 }) {
   const [box, { width }] = useSize<HTMLDivElement>();
+  // The board is the showcase, so its tiles play, but only while on screen, and not while a peek covers them.
+  const visible = useNear(box, { release: true });
   const label = useRef<HTMLSpanElement>(null);
   const { width: w, height: h } = sizeOf(piece.visual);
   const { snapshot } = piece;
@@ -79,7 +83,7 @@ function Tile({
       )}
     >
       <div ref={box} className='absolute inset-0'>
-        <Live visual={piece.visual} origin={origin} width={width} height={(width * h) / w} />
+        <Live visual={piece.visual} origin={origin} width={width} height={(width * h) / w} still={!visible || paused} />
       </div>
       {/* Pointer devices: the name follows the pointer. Touch: it sits in the corner. */}
       <span
@@ -324,6 +328,7 @@ export function Board({ manifest }: { manifest: Manifest }) {
                 piece={piece}
                 origin={origins[piece.visual.id]}
                 dimmed={hovered !== null && hovered !== i}
+                paused={open !== null}
                 onHover={on => setHovered(current => (on ? i : current === i ? null : current))}
                 onOpen={from => setOpen({ index: i, from })}
                 tileRef={el => {

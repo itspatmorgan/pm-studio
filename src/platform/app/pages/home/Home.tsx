@@ -2,11 +2,12 @@
 // (its `overview`, src/platform/app/modules.ts). The panel is narrow and centred, so it reads as a welcome rather
 // than a page to fill, and stays comfortable in the narrow window an agent's harness gives the app. The modules decide
 // what is worth showing and in what order, so a module added to the app can put something here with no change to this file.
-// A module whose contribution is visual (its `homeBoard`) takes the page instead: the greeting and search become one row
-// above it, and the panel's lists stay in the palette.
+// A module whose contribution is visual (its `homeBoard`) changes the page: the greeting and a larger search take the
+// first screen, the board follows below them, and the panel's lists stay in the palette.
 //
 // While you run the app locally it greets you and puts your own work first. The deployed site doesn't know who is
 // looking, so it names the app, adds the tagline from studio.config.json, and puts what colleagues come for first.
+import { useEffect, useRef, useState } from 'react';
 import { getRouteApi } from '@tanstack/react-router';
 import { cn } from '#studio/runtime';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -28,6 +29,18 @@ export default function Home() {
   const first = name?.split(' ')[0];
   const heading = name === undefined ? '\u00a0' : first ? `Welcome back, ${first}` : APP_NAME;
   const boards = homeApps(local, 'homeBoard');
+  // Whether the page is scrolled to its top, which a marker at the top of the page tells, whatever element scrolls.
+  const top = useRef<HTMLSpanElement>(null);
+  const [atTop, setAtTop] = useState(true);
+  useEffect(() => {
+    const el = top.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(([entry]) => entry && setAtTop(entry.isIntersecting), {
+      rootMargin: '-40px 0px 0px 0px',
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [boards.length]);
   // The search opens the ⌘K palette, the search every page has, put where a first-time visitor will see it.
   // Custom on purpose: the stock Button and Kbd looked like a control placed in the panel.
   const search = (className: string) => (
@@ -44,21 +57,36 @@ export default function Home() {
       <kbd className='rounded border border-border px-1.5 py-0.5 font-sans text-[11px] leading-none'>⌘K</kbd>
     </button>
   );
-  // With a board, the board is the page: the greeting and the search share one quiet row above it, aligned to its edges,
-  // and the lists the panel would show stay one keystroke away in the palette.
+  // With a board, the front page is a welcome first and a gallery second, like an assistant's home: the greeting and one
+  // large search sit centred in the first screen, over a faint dot field that fades out from the middle, and the board
+  // starts just below, its first row showing under a fade so the page asks to be scrolled. The fade lifts once you do.
   if (boards.length)
     return (
-      <div className='w-full'>
-        <header className='mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-5 pt-10 pb-8 sm:flex-row sm:items-end sm:justify-between sm:px-7 sm:pt-16 sm:pb-10'>
-          <div>
-            <h1 className='text-[28px] leading-tight font-semibold tracking-tight text-foreground sm:text-[32px]'>
-              {heading}
-            </h1>
-            {!local && TAGLINE && <p className='mt-1.5 text-sm text-muted-foreground'>{TAGLINE}</p>}
+      <div className='relative w-full'>
+        <section className='relative isolate flex min-h-[68svh] flex-col items-center justify-center px-5 pt-14 pb-12'>
+          <div
+            aria-hidden
+            className='pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(var(--border)_1px,transparent_1.5px)] bg-[size:22px_22px] [mask-image:radial-gradient(ellipse_55%_60%_at_50%_48%,black_20%,transparent_75%)]'
+          />
+          <span ref={top} aria-hidden className='absolute top-0 h-20 w-px' />
+          <h1 className='text-center text-[30px] leading-tight font-semibold tracking-tight text-balance text-foreground sm:text-[38px]'>
+            {heading}
+          </h1>
+          {!local && TAGLINE && <p className='mt-2 text-center text-[15px] text-muted-foreground'>{TAGLINE}</p>}
+          <div className='mt-8 w-full max-w-[560px]'>
+            {search(
+              'h-14 rounded-2xl bg-background px-5 text-[15px] ring-1 ring-border shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-12px_rgb(0_0_0/0.12)] hover:bg-background hover:ring-foreground/20 focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-ring',
+            )}
           </div>
-          {search('rounded-full bg-card ring-1 ring-border sm:w-[340px]')}
-        </header>
+        </section>
         {boards.map(({ spec, app }) => app.homeBoard && <app.homeBoard key={spec.id} manifest={manifest} />)}
+        <div
+          aria-hidden
+          className={cn(
+            'pointer-events-none sticky bottom-0 -mt-40 h-40 bg-[linear-gradient(to_top,var(--background),transparent)] transition-opacity duration-500',
+            atTop ? 'opacity-100' : 'opacity-0',
+          )}
+        />
       </div>
     );
   return (
