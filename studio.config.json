@@ -15,7 +15,8 @@
     "view": true,
     "onboarding": true,
     "contributors": true,
-    "dialkit": true
+    "dialkit": true,
+    "featured": true
   },
   "systems": [
     "website"

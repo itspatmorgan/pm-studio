@@ -41,6 +41,7 @@ When the person asks for a standalone diagram inside a prototype, read [src/plat
 When the person asks to add, tune, save, or remove DialKit dials on a view, read [src/platform/modules/dialkit/skills/use-dialkit/SKILL.md](src/platform/modules/dialkit/skills/use-dialkit/SKILL.md).
 When the person asks for a document inside a prototype, read [src/platform/modules/document/skills/write-document/SKILL.md](src/platform/modules/document/skills/write-document/SKILL.md).
 When the person asks to add or change the human Manual, read [src/platform/modules/documentation/skills/write-manual/SKILL.md](src/platform/modules/documentation/skills/write-manual/SKILL.md).
+When the person asks about Featured work, read [src/modules/featured/skills/use-featured/SKILL.md](src/modules/featured/skills/use-featured/SKILL.md).
 When the person asks for a first tour of the studio or help getting started after installation, read [src/platform/modules/onboarding/skills/use-onboarding/SKILL.md](src/platform/modules/onboarding/skills/use-onboarding/SKILL.md).
 When the person asks to create or edit interactive prototype views, read [src/platform/modules/prototypes/skills/build-prototype/SKILL.md](src/platform/modules/prototypes/skills/build-prototype/SKILL.md).
 When the person asks to rename, move, duplicate, archive, restore, download, or remove a prototype, read [src/platform/modules/prototypes/skills/organize-prototype/SKILL.md](src/platform/modules/prototypes/skills/organize-prototype/SKILL.md).
