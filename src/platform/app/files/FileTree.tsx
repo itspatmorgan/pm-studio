@@ -274,6 +274,8 @@ export type FileTreePolicy = {
   noun: 'artifacts' | 'files';
   // The list's heading, when it names what a section's items hold better than "Artifacts", such as a visual's pieces.
   heading?: string;
+  // Rows of the section's own at the top of the list, before its files, such as a visual project's overview row.
+  Leading?: ComponentType<FileTreeContext>;
   reorder: boolean;
   canChange(proto: Prototype, actor: string | null): boolean;
   newOptions(folder: string, context: { live: boolean; editable: boolean }): NewFileOption[];
@@ -1099,6 +1101,7 @@ export default function FileTree({
           {q && shown.length === 0 && (
             <p className='px-2.5 py-1 text-[12px] text-muted-foreground'>No matching {noun}.</p>
           )}
+          {!branch && !q && policy.Leading && <policy.Leading proto={proto} manifest={manifest} />}
           {createField('', 0)}
           {rows(shown, 0)}
         </div>

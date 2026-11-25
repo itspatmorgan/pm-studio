@@ -1,57 +1,53 @@
-// A visual project's own page, beside its navigation, which lists the project's pieces, one row each (nav.tsx).
+// A visual project's own page, beside its navigation, which lists All pieces and then the project's pieces (nav.tsx).
 //
-// - At the project's address (/visuals/<project>) it shows Selected, the version picked for each piece, with the pieces
-//   still to decide after them; the navigation's top row (nav.tsx) is this page. A project of one piece opens that piece.
-// - At a version's address (/visuals/<project>/<piece>/v03) it shows that piece: the version large, playing, at its true
-//   shape. ← and → step through the piece's versions. Compare pins the version on stage and puts the next one you pick
-//   beside it, from the film strip or with the arrow keys, so you can cycle candidates against the one you like.
-// - It is one column, for the narrow pane Studio often gets beside a coding harness, in three layers that each answer one
-//   question. The header says which piece (and its project and format). The stage shows the version. The versions
-//   panel under it holds everything about versions: the film strip that picks one, Compare, and, beside the strip, the
-//   version on stage with its status, Tune when it has DialKit dials, your note, and "Ask for vNN", which copies a prompt
-//   with that note for the agent. The panel folds down to one line that still names the version and its status. Status
-//   and note save to _iterations.json through the module's route (server.ts).
+// - At the project's address (/visuals/<project>) it shows All pieces: a contact sheet, every piece in an equal cell at
+//   its pick (or, with none yet, its newest version, marked), in the project's order, to judge the set together. A
+//   project of one piece opens that piece.
+// - At a version's address (/visuals/<project>/<piece>/v03) it shows that piece in three layers, each with one job. The
+//   header names the piece. The stage plays the version at its true shape, with Compare and Tune in its corner. The
+//   versions panel runs the round: a chain of the piece's versions, where each version's note, its direction for the
+//   next one, sits on the arrow between them, and an inspector for the version on stage with its flag (Pick,
+//   Shortlist, Reject) and that direction. The panel keeps one small height however many versions there are: the chain
+//   scrolls sideways and rejected versions fold to stubs. Keys do the routine: ← → step, P S X U flag, C compare, D
+//   direction. Flags and notes save to _iterations.json through the module's route (server.ts).
 //
-// Performance: only the stage plays; the project's tiles play while pointed at.
-import { useEffect, useState } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { HugeiconsIcon } from '@hugeicons/react';
+// Performance: only the stage plays; thumbnails are still; contact sheet cells play while pointed at.
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactElement } from 'react';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { HugeiconsIcon, type IconSvgElement } from '@hugeicons/react';
 import {
   ArrowDown01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
-  Copy01Icon,
+  Bookmark02Icon,
+  Cancel01Icon,
+  CheckmarkCircle02Icon,
   SlidersHorizontalIcon,
 } from '@hugeicons/core-free-icons';
 import type { Artifact, Prototype } from '#studio/data';
 import { callModule, canChangePrototype, contribution, useManifest, useMe } from '#studio/data';
 import { cn } from '#studio/runtime';
-import {
-  Button,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-  Textarea,
-  toast,
-} from '#studio/components';
+import { Button, Textarea, Tooltip, TooltipContent, TooltipTrigger, toast } from '#studio/components';
 import { FORMATS } from './lib/formats.ts';
-import { Live, Tiles, data, piecesOf, useOrigins, useSize, useStable, versionHref, versionName } from './shared.tsx';
+import { Live, data, leadOf, piecesOf, useSize, versionHref, versionName } from './shared.tsx';
 import type { Status, VisualEntry, VisualProject, VisualVersion } from './visuals.ts';
 
+// The flags a creative director sets while reviewing, with their keys. A version with none is still being explored.
+const FLAGS: { status: Exclude<Status, 'exploring'>; label: string; key: string; icon: IconSvgElement; on: string }[] = [
+  { status: 'selected', label: 'Pick', key: 'P', icon: CheckmarkCircle02Icon, on: 'bg-info text-info-foreground ring-1 ring-info-border' },
+  { status: 'shortlisted', label: 'Shortlist', key: 'S', icon: Bookmark02Icon, on: 'bg-foreground text-background' },
+  { status: 'rejected', label: 'Reject', key: 'X', icon: Cancel01Icon, on: 'bg-muted-foreground/25 text-foreground' },
+];
 const LABEL: Record<Status, string> = {
-  exploring: 'Exploring',
+  exploring: 'Unflagged',
   shortlisted: 'Shortlisted',
-  selected: 'Selected',
+  selected: 'Picked',
   rejected: 'Rejected',
 };
-// The status choices in the order a version moves through them.
-const ORDER: Status[] = ['exploring', 'shortlisted', 'selected', 'rejected'];
 const DOT: Record<Status, string> = {
   exploring: 'bg-muted-foreground/40',
   shortlisted: 'bg-foreground/70',
-  selected: 'bg-primary',
+  selected: 'bg-info-foreground',
   rejected: 'bg-transparent ring-1 ring-muted-foreground/50',
 };
 
@@ -61,19 +57,12 @@ const saveRecord = (project: string, version: string, change: { status?: Status;
   callModule('visuals', 'record', { project, version, ...change });
 
 function useSave(proto: Prototype) {
-  const [saving, setSaving] = useState(false);
-  return {
-    saving,
-    save: async (studioId: string, change: { status?: Status; note?: string }) => {
-      setSaving(true);
-      try {
-        await saveRecord(proto.id, studioId, change);
-      } catch (error) {
-        toast.add({ title: `Couldn't save: ${(error as Error).message}` });
-      } finally {
-        setSaving(false);
-      }
-    },
+  return async (studioId: string, change: { status?: Status; note?: string }) => {
+    try {
+      await saveRecord(proto.id, studioId, change);
+    } catch (error) {
+      toast.add({ title: `Couldn't save: ${(error as Error).message}` });
+    }
   };
 }
 
@@ -124,314 +113,397 @@ export function VisualPage({ proto, item }: { proto: Prototype; item?: Artifact 
   }, [only, navigate]);
   if (!index || !project || only) return null;
   if (piece) return <PiecePage key={piece.id} project={project} visual={piece} item={item!} proto={proto} />;
-  return <ProjectPage project={project} pieces={pieces} />;
+  return <ProjectPage project={project} pieces={pieces} proto={proto} />;
 }
 
-// The project's page, Selected, which has its own row at the top of the navigation: the version picked for each piece, in
-// the project's order, as the set the project has settled on. Pieces with no pick yet follow under "To decide", each at
-// its newest version, so the page also says what's left.
-function ProjectPage({ project, pieces }: { project: VisualProject; pieces: VisualEntry[] }) {
-  const manifest = useManifest();
-  const index = data(manifest)!;
-  const stable = useStable(pieces);
-  const origins = useOrigins(manifest, stable);
+// ─── All pieces ──────────────────────────────────────────────────────────────────────────────────────────────────────
+
+// Cells are all one size, so the eye compares the pieces, not their tiles. Each piece fits inside its cell at its true
+// shape, on a quiet ground.
+const CELL_MIN = 260;
+const CELL_GAP = 20;
+const CELL_RATIO = 3 / 4;
+
+function Cell({ visual, proto, width }: { visual: VisualEntry; proto: Prototype; width: number }) {
+  const [playing, setPlaying] = useState(false);
+  const version = leadOf(visual);
+  const height = width * CELL_RATIO;
+  const format = FORMATS[version.format];
+  return (
+    <Link
+      to={versionHref(visual) as never}
+      onPointerEnter={() => setPlaying(true)}
+      onPointerLeave={() => setPlaying(false)}
+      onFocus={() => setPlaying(true)}
+      onBlur={() => setPlaying(false)}
+      className='group block min-w-0 rounded-xl outline-none'
+      data-cell
+    >
+      <div
+        className='grid place-items-center rounded-xl bg-muted/40 ring-1 ring-foreground/[0.04] transition-[box-shadow] group-hover:ring-foreground/15 group-focus-visible:ring-2 group-focus-visible:ring-ring'
+        style={{ height }}
+      >
+        <Fitted
+          visual={visual}
+          version={version}
+          proto={proto}
+          box={{ width: width - 40, height: height - 40 }}
+          still={!playing}
+          className='rounded-md shadow-sm'
+        />
+      </div>
+      <div className='mt-2 flex items-baseline gap-2 px-0.5'>
+        <span className='min-w-0 flex-1 truncate text-[13px] leading-5 font-medium text-foreground'>{visual.title}</span>
+        <span className='shrink-0 text-xs text-muted-foreground tabular-nums'>
+          {visual.selected ? versionName(version) : 'No pick yet'}
+        </span>
+      </div>
+      <div className='truncate px-0.5 text-xs leading-5 text-muted-foreground tabular-nums'>
+        {format.label} · {format.width}×{format.height}
+      </div>
+    </Link>
+  );
+}
+
+function ProjectPage({ project, pieces, proto }: { project: VisualProject; pieces: VisualEntry[]; proto: Prototype }) {
   const [area, { width }] = useSize<HTMLDivElement>();
-  const decided = pieces.filter(p => p.selected);
-  const open = pieces.filter(p => !p.selected);
-  const family = (p: VisualEntry) => index.families.find(f => f.id === p.family)?.label;
-  const count = (n: number) => `${n} ${n === 1 ? 'version' : 'versions'}`;
+  const columns = Math.max(1, Math.floor((width + CELL_GAP) / (CELL_MIN + CELL_GAP)));
+  const cell = (width - CELL_GAP * (columns - 1)) / columns;
+  const open = pieces.filter(p => !p.selected).length;
+  // Arrow keys move across the sheet as they would in a grid of photos.
+  const move = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const step = ({ ArrowRight: 1, ArrowLeft: -1, ArrowDown: columns, ArrowUp: -columns } as Record<string, number>)[event.key];
+    if (!step) return;
+    const cells = [...event.currentTarget.querySelectorAll<HTMLElement>('[data-cell]')];
+    const at = cells.indexOf(document.activeElement as HTMLElement);
+    const next = cells[at < 0 ? 0 : at + step];
+    if (!next) return;
+    event.preventDefault();
+    next.focus();
+  };
   return (
     <main className='min-w-0 flex-1 overflow-y-auto'>
-      <div ref={area} className='mx-auto w-full max-w-5xl px-6 pt-8 pb-16'>
+      <div className='mx-auto w-full max-w-[1152px] px-6 pt-8 pb-16'>
         <header className='mb-6'>
-          <h1 className='text-lg font-semibold tracking-tight text-foreground'>Selected</h1>
+          <h1 className='text-lg font-semibold tracking-tight text-foreground'>All pieces</h1>
           <p className='mt-0.5 text-sm text-muted-foreground'>
-            {open.length
-              ? `The version picked for each piece of ${project.title}. ${decided.length} of ${pieces.length} pieces decided.`
-              : `The version picked for each piece of ${project.title}.`}
+            {[project.title, `${pieces.length} pieces`, open ? `${open} without a pick` : 'every piece picked'].join(' · ')}
           </p>
         </header>
-        {decided.length > 0 && (
-          <Tiles
-            items={decided.map(p => ({
-              key: p.id,
-              visual: p,
-              href: versionHref(p),
-              title: p.title,
-              line: [versionName(p.selected!), family(p)].filter(Boolean).join(' · '),
-            }))}
-            origins={origins}
-            width={width}
-            row={200}
-          />
-        )}
-        {open.length > 0 && (
-          <section className={cn(decided.length > 0 && 'mt-12')}>
-            <h2 className='mb-1 text-sm font-semibold text-foreground'>To decide</h2>
-            <p className='mb-4 text-sm text-muted-foreground'>No version picked yet. Each shows its newest.</p>
-            <Tiles
-              items={open.map(p => ({
-                key: p.id,
-                visual: p,
-                href: versionHref(p),
-                title: p.title,
-                line: [count(p.versions.length), family(p)].filter(Boolean).join(' · '),
-              }))}
-              origins={origins}
-              width={width}
-              row={160}
-            />
-          </section>
-        )}
+        <div
+          ref={area}
+          onKeyDown={move}
+          className='grid'
+          style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, columnGap: CELL_GAP, rowGap: CELL_GAP + 8 }}
+        >
+          {width > 0 && pieces.map(p => <Cell key={p.id} visual={p} proto={proto} width={cell} />)}
+        </div>
       </div>
     </main>
   );
 }
 
-// The version's status, as a compact menu in the header: the dot and word say where it stands, and the menu moves it.
-function StatusMenu({
-  version,
-  editable,
-  saving,
-  onChange,
-}: {
-  version: VisualVersion;
-  editable: boolean;
-  saving: boolean;
-  onChange: (status: Status) => void;
-}) {
-  const face = (
-    <>
-      <span aria-hidden className={cn('size-1.5 rounded-full', DOT[version.status])} />
-      {LABEL[version.status]}
-    </>
-  );
-  if (!editable)
-    return <span className='flex h-7 items-center gap-1.5 px-2 text-xs text-muted-foreground'>{face}</span>;
+// ─── A piece ─────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+// A choice remembered in this browser, such as whether the versions panel is open.
+function useRemembered(key: string, initial: boolean) {
+  const [value, setValue] = useState(() => {
+    try {
+      const stored = localStorage.getItem(key);
+      return stored === null ? initial : stored === 'true';
+    } catch {
+      return initial;
+    }
+  });
+  const change = (next: boolean) => {
+    setValue(next);
+    try {
+      localStorage.setItem(key, String(next));
+    } catch {}
+  };
+  return [value, change] as const;
+}
+
+const quiet =
+  'grid shrink-0 place-items-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none';
+
+function Tip({ label, children }: { label: string; children: ReactElement }) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger
-        disabled={saving}
-        render={<Button variant='ghost' size='sm' className='gap-1.5 text-xs' aria-label={`Status: ${LABEL[version.status]}`} />}
-      >
-        {face}
-        <HugeiconsIcon icon={ArrowDown01Icon} aria-hidden className='text-muted-foreground' />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align='start' className='w-44'>
-        <DropdownMenuRadioGroup value={version.status} onValueChange={next => onChange(next as Status)}>
-          {ORDER.map(status => (
-            <DropdownMenuRadioItem key={status} value={status} className='gap-2'>
-              <span aria-hidden className={cn('size-1.5 rounded-full', DOT[status])} />
-              {LABEL[status]}
-            </DropdownMenuRadioItem>
-          ))}
-        </DropdownMenuRadioGroup>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <Tooltip>
+      <TooltipTrigger render={children} />
+      <TooltipContent side='top'>{label}</TooltipContent>
+    </Tooltip>
   );
 }
 
-// Whether the versions panel is open, remembered in this browser, so the stage can take the whole height when you want.
-const PANEL = 'visuals:versions';
-const readPanel = () => {
-  try {
-    return localStorage.getItem(PANEL) !== 'closed';
-  } catch {
-    return true;
-  }
-};
+// The note on a version is its direction for the next one. Writing it opens a small sheet above the panel; saving with
+// ⌘↵ also copies a prompt for the agent to make the next version from it.
+function Direction({
+  project,
+  visual,
+  current,
+  editable,
+  open,
+  onOpenChange,
+  onSave,
+}: {
+  project: VisualProject;
+  visual: VisualEntry;
+  current: VisualVersion;
+  editable: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (note: string) => Promise<void>;
+}) {
+  const [note, setNote] = useState(current.note ?? '');
+  useEffect(() => setNote(current.note ?? ''), [current.studioId, current.note]);
+  const next = `v${String(visual.versions.length + 1).padStart(2, '0')}`;
+  const name = versionName(current);
+  const prompt = (text: string) =>
+    `Make ${next} of "${visual.title}", a piece of the visual project ${project.title} (src/visuals/${visual.id}/), from ${name}${
+      text ? `: ${text}` : '.'
+    }`;
+  const save = async (copy: boolean) => {
+    const text = note.trim();
+    if (text !== (current.note ?? '')) await onSave(text);
+    if (copy) await navigator.clipboard.writeText(prompt(text)).then(() => toast.add({ title: `Prompt for ${next} copied` }));
+    onOpenChange(false);
+  };
+  return (
+    <>
+      <button
+        type='button'
+        disabled={!editable}
+        onClick={() => onOpenChange(!open)}
+        title={current.note || undefined}
+        className='flex h-6 min-w-0 items-center gap-1.5 rounded-md px-1.5 text-left text-xs outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring disabled:hover:bg-transparent'
+      >
+        <span className='shrink-0 text-muted-foreground'>Next:</span>
+        <span className={cn('min-w-0 truncate', current.note ? 'text-foreground' : 'text-muted-foreground/70')}>
+          {current.note || (editable ? 'Add direction (D)' : 'No direction')}
+        </span>
+      </button>
+      {open && editable && (
+        <div className='absolute bottom-full left-2 z-20 mb-2 w-[min(420px,calc(100%-16px))] rounded-xl border border-border bg-popover p-3 shadow-lg'>
+          <p className='mb-2 text-xs text-muted-foreground'>
+            Direction from {name}. Copying the prompt asks the agent for {next}.
+          </p>
+          <Textarea
+            autoFocus
+            aria-label={`Direction from ${name}`}
+            value={note}
+            onChange={e => setNote(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Escape') {
+                e.stopPropagation();
+                onOpenChange(false);
+              }
+              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) void save(true);
+            }}
+            placeholder='What works, and what to change next'
+            className='min-h-[72px] resize-none text-sm'
+            rows={3}
+          />
+          <div className='mt-2 flex items-center justify-end gap-2'>
+            <Button variant='ghost' size='sm' onClick={() => void save(false)}>
+              Save
+            </Button>
+            <Button size='sm' onClick={() => void save(true)}>
+              Save and copy prompt <span className='opacity-60'>⌘↵</span>
+            </Button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
 
-const iconButton =
-  'grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring';
-
-// The one panel under the stage, and the only place versions are handled. Its first line names it ("Versions"), with
-// Compare and the fold. Open, the film strip picks a version, and beside it the version on stage carries its status,
-// Tune, your note and "Ask for vNN". Folded, the line still says which version is on stage and where it stands.
+// The versions panel: an inspector for the version on stage, then the chain of versions.
 function Versions({
   project,
   visual,
   proto,
   current,
   pinned,
-  comparing,
   editable,
-  tunable,
+  showRejected,
+  onShowRejected,
+  directing,
+  onDirecting,
+  onFlag,
   onPick,
-  onCompare,
-  onTune,
 }: {
   project: VisualProject;
   visual: VisualEntry;
   proto: Prototype;
   current: VisualVersion;
   pinned?: VisualVersion;
-  comparing: boolean;
   editable: boolean;
-  tunable: boolean;
+  showRejected: boolean;
+  onShowRejected: (show: boolean) => void;
+  directing: boolean;
+  onDirecting: (open: boolean) => void;
+  onFlag: (status: Status) => void;
   onPick: (version: VisualVersion) => void;
-  onCompare: () => void;
-  onTune: () => void;
 }) {
-  const [open, setOpen] = useState(readPanel);
-  const toggle = () =>
-    setOpen(was => {
-      try {
-        localStorage.setItem(PANEL, was ? 'closed' : 'open');
-      } catch {}
-      return !was;
-    });
-  const { save, saving } = useSave(proto);
-  const [note, setNote] = useState(current.note ?? '');
-  useEffect(() => setNote(current.note ?? ''), [current.studioId, current.note]);
-  const dirty = note.trim() !== (current.note ?? '');
-  const commit = () => dirty && void save(current.studioId, { note: note.trim() });
+  const [open, setOpen] = useRemembered('visuals:versions', true);
+  const save = useSave(proto);
   const versions = visual.versions;
+  const rejected = versions.filter(v => v.status === 'rejected').length;
+  const chain = useRef<HTMLOListElement>(null);
+  // Keep the version on stage in view as you step.
+  useLayoutEffect(() => {
+    chain.current?.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [current.studioId, open]);
+  const H = 40;
   const name = versionName(current);
-  const next = `v${String(versions.length + 1).padStart(2, '0')}`;
-  const prompt = `Make ${next} of "${visual.title}", a piece of the visual project ${project.title} (src/visuals/${visual.id}/), from ${name}${
-    note.trim() ? `: ${note.trim()}` : '.'
-  }`;
-  const H = 56;
-  const hint = pinned
-    ? comparing
-      ? 'Pick another to compare with the pinned one · Esc to stop'
-      : `${versionName(pinned)} is pinned · pick a version to compare`
-    : versions.length > 1
-      ? '← → steps through versions'
-      : '';
   return (
-    <section aria-label='Versions' className='@container shrink-0 border-t border-border'>
-      <div className='flex h-10 items-center gap-2 px-4'>
-        <button
-          type='button'
-          onClick={toggle}
-          aria-expanded={open}
-          className='-ml-1 flex h-7 shrink-0 items-center gap-1.5 rounded-md px-1.5 text-xs outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring'
-        >
-          <HugeiconsIcon
-            icon={ArrowDown01Icon}
-            size={14}
-            className={cn('text-muted-foreground transition-transform', !open && 'rotate-180')}
-          />
-          <span className='font-medium text-foreground'>Versions</span>
-          <span className='text-muted-foreground tabular-nums'>{versions.length}</span>
-        </button>
-        {!open && (
-          <p className='flex min-w-0 flex-1 items-center gap-1.5 truncate text-xs text-muted-foreground'>
-            <span aria-hidden>·</span>
-            <span className='font-medium text-foreground tabular-nums'>{name}</span>
-            <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', DOT[current.status])} />
-            {LABEL[current.status]}
-            {current.note && <span className='truncate'>· {current.note}</span>}
-          </p>
-        )}
-        <div className='ml-auto flex shrink-0 items-center gap-3'>
-          {open && hint && <p className='hidden text-xs text-muted-foreground md:block'>{hint}</p>}
-          {versions.length > 1 && (
-            <Button variant={pinned ? 'secondary' : 'ghost'} size='sm' aria-pressed={Boolean(pinned)} onClick={onCompare}>
-              {pinned ? 'Done comparing' : 'Compare'}
-            </Button>
-          )}
+    <section aria-label='Versions' className='relative shrink-0 border-t border-border'>
+      {!open ? (
+        <div className='flex h-8 items-center gap-2 px-2'>
+          <Tip label='Show versions'>
+            <button type='button' aria-expanded={false} aria-label='Show versions' onClick={() => setOpen(true)} className={cn(quiet, 'size-6')}>
+              <HugeiconsIcon icon={ArrowDown01Icon} size={14} className='rotate-180' />
+            </button>
+          </Tip>
+          <span className='text-xs font-semibold text-foreground tabular-nums'>{name}</span>
+          <span className='mr-2 text-xs text-muted-foreground'>{LABEL[current.status]}</span>
+          <ol aria-label='Versions' className='flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden'>
+            {versions.map(v => (
+              <li key={v.studioId} className='flex'>
+                <button
+                  type='button'
+                  aria-label={`${versionName(v)}, ${LABEL[v.status]}`}
+                  onClick={() => onPick(v)}
+                  className={cn(
+                    'size-2 rounded-full',
+                    DOT[v.status],
+                    v.studioId === current.studioId && 'ring-2 ring-foreground ring-offset-1 ring-offset-background',
+                  )}
+                />
+              </li>
+            ))}
+          </ol>
         </div>
-      </div>
-      {open && (
-        <div className='flex flex-col gap-3 px-4 pb-4 @3xl:flex-row @3xl:items-stretch @3xl:gap-5'>
-          <ol aria-label='Pick a version' className='flex min-w-0 shrink-0 items-start gap-2 overflow-x-auto pt-0.5 pb-0.5 @3xl:max-w-[50%]'>
-            {versions.map(version => {
+      ) : (
+        <div className='flex h-[76px] items-stretch'>
+          <div className='flex w-[232px] shrink-0 flex-col justify-center gap-1 border-r border-border px-2'>
+            <div className='flex items-center gap-1'>
+              <Tip label='Hide versions'>
+                <button type='button' aria-expanded aria-label='Hide versions' onClick={() => setOpen(false)} className={cn(quiet, 'size-6')}>
+                  <HugeiconsIcon icon={ArrowDown01Icon} size={14} />
+                </button>
+              </Tip>
+              <span className='mr-auto text-sm font-semibold text-foreground tabular-nums'>{name}</span>
+              <div className='flex items-center gap-0.5' role='group' aria-label={`Flag ${name}`}>
+                {FLAGS.map(flag => {
+                  const on = current.status === flag.status;
+                  return (
+                    <Tip key={flag.status} label={`${flag.label} (${flag.key})`}>
+                      <button
+                        type='button'
+                        aria-pressed={on}
+                        aria-label={flag.label}
+                        disabled={!editable}
+                        onClick={() => onFlag(on ? 'exploring' : flag.status)}
+                        className={cn(quiet, 'size-6', on && flag.on, on && 'hover:bg-[inherit] hover:text-[inherit]')}
+                      >
+                        <HugeiconsIcon icon={flag.icon} size={14} />
+                      </button>
+                    </Tip>
+                  );
+                })}
+              </div>
+            </div>
+            <Direction
+              project={project}
+              visual={visual}
+              current={current}
+              editable={editable}
+              open={directing}
+              onOpenChange={onDirecting}
+              onSave={note => save(current.studioId, { note })}
+            />
+          </div>
+          <ol
+            ref={chain}
+            aria-label='Versions'
+            onWheel={e => {
+              if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY;
+            }}
+            className='flex min-w-0 flex-1 items-center overflow-x-auto px-3 [scrollbar-width:thin]'
+          >
+            {versions.map((version, i) => {
               const format = FORMATS[version.format];
               const on = version.studioId === current.studioId;
               const held = version.studioId === pinned?.studioId;
+              const before = versions[i - 1];
+              const folded = version.status === 'rejected' && !showRejected && !on && !held;
+              const label = `${versionName(version)}, ${LABEL[version.status]}`;
               return (
-                <li key={version.studioId} className='shrink-0'>
-                  <button
-                    type='button'
-                    aria-current={on ? 'true' : undefined}
-                    aria-label={`${versionName(version)}, ${LABEL[version.status]}`}
-                    onClick={() => !on && onPick(version)}
-                    className='group flex flex-col items-start gap-1 rounded-md outline-none'
-                  >
-                    <Fitted
-                      visual={visual}
-                      version={version}
-                      proto={proto}
-                      box={{ width: (H * format.width) / format.height, height: H }}
-                      still
-                      className={cn(
-                        'rounded-md transition-shadow',
-                        on || held
-                          ? 'ring-2 ring-foreground'
-                          : 'group-hover:ring-foreground/30 group-focus-visible:ring-2 group-focus-visible:ring-ring',
-                      )}
-                    />
-                    <span className='flex items-center gap-1.5 text-[11px] leading-4 text-muted-foreground tabular-nums'>
-                      <span aria-hidden className={cn('size-1.5 rounded-full', DOT[version.status])} />
-                      <span className={cn(on && 'font-medium text-foreground')}>{versionName(version)}</span>
-                      {held && <span>pinned</span>}
-                    </span>
-                  </button>
+                <li key={version.studioId} className='flex shrink-0 items-center'>
+                  {before &&
+                    (before.note ? (
+                      <Tip label={`${versionName(before)} → ${versionName(version)}: ${before.note}`}>
+                        <span tabIndex={0} aria-label={`Direction from ${versionName(before)}: ${before.note}`} className='flex h-4 w-5 items-center outline-none focus-visible:ring-2 focus-visible:ring-ring'>
+                          <span className='h-px flex-1 bg-border' />
+                          <span className='size-1.5 rounded-full bg-foreground/60' />
+                          <span className='h-px flex-1 bg-border' />
+                        </span>
+                      </Tip>
+                    ) : (
+                      <span aria-hidden className='h-px w-5 bg-border' />
+                    ))}
+                  {folded ? (
+                    <Tip label={label}>
+                      <button
+                        type='button'
+                        aria-label={label}
+                        onClick={() => onPick(version)}
+                        className='mb-4 h-10 w-2 rounded-sm bg-muted-foreground/20 outline-none hover:bg-muted-foreground/40 focus-visible:ring-2 focus-visible:ring-ring'
+                      />
+                    </Tip>
+                  ) : (
+                    <button
+                      type='button'
+                      aria-current={on ? 'true' : undefined}
+                      aria-label={label}
+                      onClick={() => !on && onPick(version)}
+                      className='group flex flex-col items-center gap-1 rounded-md outline-none'
+                    >
+                      <Fitted
+                        visual={visual}
+                        version={version}
+                        proto={proto}
+                        box={{ width: (H * format.width) / format.height, height: H }}
+                        still
+                        className={cn(
+                          'rounded-[5px] transition-shadow',
+                          on || held ? 'ring-2 ring-foreground' : 'group-hover:ring-foreground/30 group-focus-visible:ring-2 group-focus-visible:ring-ring',
+                          version.status === 'rejected' && 'opacity-50',
+                        )}
+                      />
+                      <span className='flex items-center gap-1 text-[10px] leading-3 text-muted-foreground tabular-nums'>
+                        <span aria-hidden className={cn('size-1.5 rounded-full', DOT[version.status])} />
+                        <span className={cn(on && 'font-medium text-foreground')}>{versionName(version)}</span>
+                      </span>
+                    </button>
+                  )}
                 </li>
               );
             })}
-          </ol>
-          <div className='flex min-w-0 flex-1 flex-col gap-2 @3xl:border-l @3xl:border-border @3xl:pl-5'>
-            <div className='flex items-center gap-1'>
-              <span className='mr-1 text-sm font-semibold text-foreground tabular-nums'>{name}</span>
-              <StatusMenu
-                version={current}
-                editable={editable}
-                saving={saving}
-                onChange={status => status !== current.status && void save(current.studioId, { status })}
-              />
-              {tunable && (
+            {rejected > 0 && (
+              <li className='ml-auto shrink-0 pl-4'>
                 <button
                   type='button'
-                  className={iconButton}
-                  aria-label={`Tune ${name} with DialKit`}
-                  title={`Tune ${name} with DialKit (Save to code changes this version)`}
-                  onClick={onTune}
+                  onClick={() => onShowRejected(!showRejected)}
+                  className='rounded-md px-1.5 py-1 text-[11px] whitespace-nowrap text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
                 >
-                  <HugeiconsIcon icon={SlidersHorizontalIcon} size={16} />
+                  {showRejected ? 'Fold rejected' : `${rejected} rejected`}
                 </button>
-              )}
-              {editable && (
-                <Button
-                  variant='outline'
-                  size='sm'
-                  className='ml-auto shrink-0 gap-2'
-                  disabled={saving}
-                  title={`Copies a prompt for ${next}, with your note, to give your agent`}
-                  onClick={() => {
-                    commit();
-                    void navigator.clipboard.writeText(prompt).then(() => toast.add({ title: `Prompt for ${next} copied` }));
-                  }}
-                >
-                  <HugeiconsIcon icon={Copy01Icon} aria-hidden />
-                  Ask for {next}
-                </Button>
-              )}
-            </div>
-            {editable ? (
-              <div className='flex'>
-                <Textarea
-                  aria-label={`Note on ${name}`}
-                  value={note}
-                  onChange={e => setNote(e.target.value)}
-                  onBlur={commit}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) commit();
-                  }}
-                  placeholder='Note: what works, what to change next'
-                  className='min-h-[44px] flex-1 resize-none text-sm'
-                  rows={2}
-                />
-
-              </div>
-            ) : (
-              <p className='text-sm text-pretty text-foreground'>
-                {current.note || <span className='text-muted-foreground'>No note</span>}
-              </p>
+              </li>
             )}
-          </div>
+          </ol>
         </div>
       )}
     </section>
@@ -453,39 +525,58 @@ function PiecePage({
   const index = data(manifest)!;
   const me = useMe();
   const navigate = useNavigate();
+  const save = useSave(proto);
   const versions = visual.versions;
   const current = versions.find(v => v.path === item.path)!;
   const [pinnedId, setPinnedId] = useState<string | null>(null);
+  const [directing, setDirecting] = useState(false);
+  const [showRejected, setShowRejected] = useRemembered('visuals:rejected', false);
   const [stage, size] = useSize<HTMLDivElement>();
-  const at = versions.indexOf(current);
   const pinned = versions.find(v => v.studioId === pinnedId);
+  const editable = import.meta.env.DEV && canChangePrototype(proto, me);
   const open = (version: VisualVersion) => void navigate({ to: versionHref(visual, version) as never });
-  const step = (by: number) => open(versions[(at + by + versions.length) % versions.length]!);
-  // ← and → step through the piece's versions, unless you're typing.
+  // Stepping skips folded (rejected) versions, as the chain does.
+  const stops = versions.filter(v => showRejected || v.status !== 'rejected' || v === current);
+  const step = (by: number) => {
+    const at = stops.indexOf(current);
+    if (stops.length > 1) open(stops[(at + by + stops.length) % stops.length]!);
+  };
+  const flag = (status: Status) => {
+    if (editable && status !== current.status) void save(current.studioId, { status });
+  };
+  const compare = () => setPinnedId(pinned ? null : current.studioId);
+  // The routine is on keys, unless you're typing.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
       if (target.closest('input, textarea, [contenteditable]') || event.metaKey || event.ctrlKey || event.altKey) return;
-      const by = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-      if (by && versions.length > 1) {
-        event.preventDefault();
-        step(by);
-      }
-      if (event.key === 'Escape') setPinnedId(null);
+      const key = event.key.toLowerCase();
+      const flagged = FLAGS.find(f => f.key.toLowerCase() === key);
+      if (key === 'arrowright') step(1);
+      else if (key === 'arrowleft') step(-1);
+      else if (flagged) flag(current.status === flagged.status ? 'exploring' : flagged.status);
+      else if (key === 'u') flag('exploring');
+      else if (key === 'c' && versions.length > 1) compare();
+      else if (key === 'd' && editable) setDirecting(true);
+      else if (key === 'escape') {
+        setPinnedId(null);
+        setDirecting(false);
+      } else return;
+      event.preventDefault();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
   const family = index.families.find(f => f.id === visual.family);
-  const editable = import.meta.env.DEV && canChangePrototype(proto, me);
+  const format = FORMATS[current.format];
   // DialKit's build lists the views that use it; Tune shows only for a version that has dials.
   const dials = contribution<{ views: string[] }>(manifest, 'dialkit');
   const tunable = Boolean(editable && dials?.views.includes(`src/visuals/${project.id}/${current.path}`));
   const comparing = Boolean(pinned && pinned.studioId !== current.studioId);
   const shown = comparing ? [pinned!, current] : [current];
   // Room for the ← → buttons beside the visual.
-  const padX = versions.length > 1 ? 52 : 24;
-  const padY = 24;
+  const padX = stops.length > 1 ? 52 : 24;
+  const padY = 28;
   const gap = 24;
   const cell = {
     width: (size.width - padX * 2 - gap * (shown.length - 1)) / shown.length,
@@ -493,13 +584,41 @@ function PiecePage({
   };
   return (
     <main className='flex min-h-0 min-w-0 flex-1 flex-col'>
-      <header className='shrink-0 px-5 pt-4'>
-        <h1 className='truncate text-base font-semibold tracking-tight text-foreground'>{visual.title}</h1>
-        <p className='truncate text-xs text-muted-foreground'>
-          {[project.title, family?.label, FORMATS[current.format].label].filter(Boolean).join(' · ')}
-        </p>
+      <header className='flex shrink-0 items-center gap-3 px-5 pt-3'>
+        <div className='min-w-0'>
+          <h1 className='truncate text-base font-semibold tracking-tight text-foreground'>{visual.title}</h1>
+          <p className='truncate text-xs text-muted-foreground tabular-nums'>
+            {[family?.label, `${format.label} ${format.width}×${format.height}`].filter(Boolean).join(' · ')}
+          </p>
+        </div>
+        <div className='ml-auto flex shrink-0 items-center gap-1'>
+          {tunable && (
+            <Tip label={`Tune ${versionName(current)} with DialKit`}>
+              <button
+                type='button'
+                aria-label={`Tune ${versionName(current)} with DialKit`}
+                onClick={() => void navigate({ to: versionHref(visual, current) as never, search: { mode: 'viewer' } as never })}
+                className={cn(quiet, 'size-7')}
+              >
+                <HugeiconsIcon icon={SlidersHorizontalIcon} size={16} />
+              </button>
+            </Tip>
+          )}
+          {versions.length > 1 && (
+            <Tip label={pinned ? 'Stop comparing (Esc)' : 'Compare (C)'}>
+              <Button variant={pinned ? 'secondary' : 'ghost'} size='sm' aria-pressed={Boolean(pinned)} onClick={compare}>
+                {pinned ? 'Done comparing' : 'Compare'}
+              </Button>
+            </Tip>
+          )}
+        </div>
       </header>
       <div ref={stage} className='relative flex min-h-[280px] flex-1 items-center justify-center' style={{ gap }}>
+        {pinned && !comparing && (
+          <p className='absolute top-1 left-1/2 -translate-x-1/2 text-xs text-muted-foreground'>
+            {versionName(pinned)} is pinned. Pick another version to compare.
+          </p>
+        )}
         {cell.width > 0 &&
           cell.height > 0 &&
           shown.map(version => (
@@ -513,7 +632,7 @@ function PiecePage({
               <Fitted visual={visual} version={version} proto={proto} box={cell} still={false} />
             </figure>
           ))}
-        {versions.length > 1 && !comparing && (
+        {stops.length > 1 && !comparing && (
           <>
             <button
               type='button'
@@ -540,12 +659,13 @@ function PiecePage({
         proto={proto}
         current={current}
         pinned={pinned}
-        comparing={comparing}
         editable={editable}
-        tunable={tunable}
+        showRejected={showRejected}
+        onShowRejected={setShowRejected}
+        directing={directing}
+        onDirecting={setDirecting}
+        onFlag={flag}
         onPick={open}
-        onCompare={() => setPinnedId(pinned ? null : current.studioId)}
-        onTune={() => void navigate({ to: versionHref(visual, current) as never, search: { mode: 'viewer' } as never })}
       />
     </main>
   );

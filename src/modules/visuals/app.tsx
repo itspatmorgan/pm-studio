@@ -9,7 +9,7 @@ import { APP_NAME } from '#studio/data';
 import { Board } from './Board.tsx';
 import { VisualsIndex, validateIndexSearch } from './VisualsIndex.tsx';
 import { VisualPage } from './VisualPage.tsx';
-import { SelectedRow, visualPolicy } from './nav.tsx';
+import { visualPolicy } from './nav.tsx';
 
 export default {
   icon: Image02Icon,
@@ -25,11 +25,10 @@ export default {
     }),
   ],
   homeBoard: Board,
-  // A project opens on Selected, the version picked for each piece, which has its own row at the top of the navigation;
-  // the pieces follow, one row each. A version opens on the same page, on its piece's stage.
+  // A project opens on All pieces, a contact sheet of its pieces at their picks, the first row of its navigation; the
+  // pieces follow, one row each. A version opens on the same page, on its piece's stage.
   sectionItem: {
     policy: visualPolicy,
-    navTop: SelectedRow,
     landing: VisualPage,
     shows: item => /^[a-z0-9-]+\/v\d{2,}\.tsx$/.test(item.path) },
 } satisfies ModuleApp;

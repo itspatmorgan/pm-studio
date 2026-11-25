@@ -19,12 +19,9 @@ const policyFor = (key: string) => {
 };
 
 export default function PrototypeNav({ proto, current }: { proto: Prototype; current: Artifact | undefined }) {
-  // A module can put rows of its own above the files (ModuleApp.sectionItem.navTop).
-  const Top = sectionApp(proto.contributorKey)?.sectionItem?.navTop;
   return (
     <SectionNav label='Prototype navigation'>
       <PrototypeHeader proto={proto} />
-      {Top && <Top proto={proto} current={current} />}
       <FileTree policy={policyFor(proto.contributorKey)} proto={proto} current={current} />
     </SectionNav>
   );
