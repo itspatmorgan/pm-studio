@@ -1,4 +1,4 @@
-import { cn } from '#studio/runtime';
+import { cn } from 'cn';
 
 // The site's four-pixel mark (braille P), ported from itspatmorgan.com's src/components/layout/Logo.astro.
 // Styles live in styles/theme.css under .website-theme .logo-root.

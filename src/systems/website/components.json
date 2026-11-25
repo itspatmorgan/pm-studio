@@ -14,7 +14,7 @@
   "rtl": false,
   "aliases": {
     "components": "@/systems/website/components",
-    "utils": "#studio/runtime",
+    "utils": "cn",
     "ui": "@/systems/website/components",
     "lib": "@/systems/website/lib",
     "hooks": "@/systems/website/hooks"

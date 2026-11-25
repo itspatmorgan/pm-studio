@@ -15,7 +15,7 @@ import {
   UserGroupIcon,
   UserIcon,
 } from '@hugeicons/core-free-icons';
-import { cn } from '#studio/runtime';
+import { cn } from 'cn';
 import { Logo } from '../logo';
 
 // The itspatmorgan.com shell, ported from src/layouts/PageLayout.astro and src/components/layout/

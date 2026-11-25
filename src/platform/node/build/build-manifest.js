@@ -1,4 +1,5 @@
 import { cssProblems } from '../lib/css-scope.js';
+import { systemTheme } from '../lib/css-fit.js';
 import { systemLibraryInventory } from '../lib/system-dependencies.js';
 import { scopePolicy } from '../lib/scope.js';
 import { prototypeAssignment } from '../lib/prototype-assignment.js';
@@ -515,11 +516,21 @@ export function buildManifest({ deploy = false, write = true, quiet = false, tou
       errors++;
       continue;
     }
-    for (const problem of cssProblems(fs.readFileSync(file, 'utf8'), {
-      file,
-      themeClass: sys.themeClass,
-      packagePolicy: scopePolicy({ root: ROOT, systems: PROTOTYPE_SYSTEMS, modules: ENABLED_MODULES }).packageProblem,
-    })) {
+    const packageProblem = scopePolicy({
+      root: ROOT,
+      systems: PROTOTYPE_SYSTEMS,
+      modules: ENABLED_MODULES,
+    }).packageProblem;
+    // A system with cssFitting: 'fit' is checked as Studio loads it, after fitting (src/platform/node/lib/css-fit.js).
+    const theme = systemTheme({ root: ROOT, spec: sys, packageProblem });
+    for (const problem of [
+      ...theme.problems,
+      ...cssProblems(fs.readFileSync(theme.file, 'utf8'), {
+        file: theme.file,
+        themeClass: sys.themeClass,
+        packagePolicy: packageProblem,
+      }),
+    ]) {
       out.error(`[manifest] ${problem}`);
       errors++;
     }
@@ -541,7 +552,14 @@ export function buildManifest({ deploy = false, write = true, quiet = false, tou
     if (deploy && SYSTEM_SPECS[id]?.status === 'archived') continue;
     const { components, problems } = systemDocs(dir);
     const themeFile = path.join(ROOT, sys.theme);
-    const tokens = fs.existsSync(themeFile) ? themeTokens(fs.readFileSync(themeFile, 'utf8'), sys.scope) : [];
+    const tokens = fs.existsSync(themeFile)
+      ? themeTokens(
+          SYSTEM_SPECS[id]
+            ? systemTheme({ root: ROOT, spec: SYSTEM_SPECS[id] }).tokens
+            : fs.readFileSync(themeFile, 'utf8'),
+          sys.scope,
+        )
+      : [];
     systems[id] = {
       docs: sys.docs,
       origin: sys.origin,

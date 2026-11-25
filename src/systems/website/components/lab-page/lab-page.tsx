@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { cn } from '#studio/runtime';
+import { cn } from 'cn';
 import { SiteLink } from '../site-shell';
 
 // A Lab experiment page, ported from itspatmorgan.com's src/layouts/LabLayout.astro:

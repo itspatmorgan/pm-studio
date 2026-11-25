@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { cn } from '#studio/runtime';
+import { cn } from 'cn';
 
 // A photo printed on white stock with a deep bottom margin, tilted a little: the About, Community, and Home hero photos.
 type PrintPhotoProps = {

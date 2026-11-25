@@ -8,6 +8,7 @@ const product: SystemSpec = {
   status: 'active',
   role: 'prototype',
   styling: 'tailwind',
+  cssFitting: 'strict',
   colorModes: ['light', 'dark'],
   screens: [{ name: 'Desktop', width: 1440 }],
   label: 'Product',
@@ -23,6 +24,12 @@ test('a well formed system has no problems', () => {
     systemProblems({ ...product, label: 'Brand', themeClass: 'brand-theme', origin: null }, 'brand'),
     [],
   );
+});
+
+test('a system declares whether Studio fits its imported CSS', () => {
+  assert.deepEqual(systemProblems({ ...product, cssFitting: 'fit' }, 'product'), []);
+  const { cssFitting: _omitted, ...missing } = product;
+  assert.match(systemProblems(missing, 'product').join('\n'), /cssFitting must be 'fit'/);
 });
 
 test('declared system identity is strict while legacy systems await explicit migration', () => {

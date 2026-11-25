@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { cn } from '#studio/runtime';
+import { cn } from 'cn';
 import { SiteLink } from '../site-shell';
 import { Badge } from '../badge';
 import SublimeCard from '@itspatmorgan/kit/sublime/SublimeCard';
