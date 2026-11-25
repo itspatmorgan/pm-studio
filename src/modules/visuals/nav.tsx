@@ -1,54 +1,31 @@
 // A project's navigation: the prototype file tree with Visuals' policy on top (ModuleApp.sectionItem). The pieces come
-// first, in the project's order, each a folder of its versions; the project's own files follow, and exports/ last. A
-// piece's folder is declared in meta.json, so it can't be renamed or moved from the tree. In each piece, every version
-// shows its status, the selected one first, rejected ones last.
-import type { FileNode } from '#studio/data';
+// first, in the project's order, one row each: a piece is a folder of versions, and its row opens its lead version (the
+// selected one, or the newest) and stays lit on any of them, while the page's film strip shows the versions themselves.
+// The project's own files follow, and exports/ last. A piece's folder is declared in meta.json, so it can't be renamed or
+// moved from the tree.
+import { artifactLabel, type Artifact, type FileNode } from '#studio/data';
 import type { FileTreeContext, FileTreePolicy } from '#studio/ui';
-import { cn } from '#studio/runtime';
 import { data } from './shared.tsx';
-import type { Status, VisualEntry } from './visuals.ts';
+import type { VisualEntry } from './visuals.ts';
 
 const EXPORTS = 'exports';
-// Selected first, then the ones still in the running, newest first, then the rejected ones.
-const RANK: Record<Status, number> = { selected: 0, shortlisted: 1, exploring: 1, rejected: 2 };
 
 const piecesOf = ({ proto, manifest }: FileTreeContext): VisualEntry[] =>
   data(manifest)?.visuals.filter(v => v.project === proto.id) ?? [];
 
-const statusOf = (pieces: VisualEntry[], path: string) =>
-  pieces.flatMap(p => p.versions).find(v => v.path === path)?.status;
-
 function arrange(nodes: FileNode[], context: FileTreeContext): FileNode[] {
   const pieces = piecesOf(context);
   const isPiece = (node: FileNode) => pieces.some(p => p.piece === node.path);
-  const rank = (n: FileNode) => RANK[statusOf(pieces, n.path) ?? 'exploring'];
   const ordered = pieces.flatMap(p => nodes.filter(n => n.path === p.piece));
   const own = nodes.filter(n => !isPiece(n) && n.path !== EXPORTS);
-  return [...ordered, ...own, ...nodes.filter(n => n.path === EXPORTS)].map(node =>
-    isPiece(node) && node.children
-      ? { ...node, children: [...node.children].sort((a, b) => rank(a) - rank(b) || b.name.localeCompare(a.name)) }
-      : node,
-  );
+  return [...ordered, ...own, ...nodes.filter(n => n.path === EXPORTS)];
 }
 
-const LABEL: Partial<Record<Status, string>> = { selected: 'Selected', shortlisted: 'Shortlisted', rejected: 'Rejected' };
-
-function badge(item: { path: string }, context: FileTreeContext) {
-  const status = statusOf(piecesOf(context), item.path);
-  const label = status && LABEL[status];
-  if (!label) return null;
-  return (
-    <span
-      className={cn(
-        'ml-auto shrink-0 rounded-full px-1.5 text-[11px] leading-[18px] font-medium',
-        status === 'selected' && 'bg-primary/10 text-primary',
-        status === 'shortlisted' && 'bg-muted text-foreground',
-        status === 'rejected' && 'text-muted-foreground',
-      )}
-    >
-      {label}
-    </span>
-  );
+// A piece's row opens its lead version.
+function bundleItem(node: FileNode, items: Map<string, Artifact>, context: FileTreeContext) {
+  const piece = node.path.includes('/') ? undefined : piecesOf(context).find(p => p.piece === node.path);
+  const lead = piece && (piece.selected ?? piece.versions.at(-1));
+  return lead ? items.get(lead.path) : undefined;
 }
 
 // exports/ and each piece's folder (a top-level folder holding versions) stay where they are.
@@ -58,10 +35,12 @@ const VERSION = /^v\d{2,}\.tsx$/;
 
 export const visualPolicy = (base: FileTreePolicy): FileTreePolicy => ({
   ...base,
-  // The pieces' order is the project's, and a piece's is its version numbers and statuses, not a hand-made one.
+  // The pieces' order is the project's, not a hand-made one.
   reorder: false,
   fixed: node => standard(node) || (base.fixed?.(node) ?? false),
   movable: node => !standard(node) && (base.movable?.(node) ?? true),
   arrange,
-  badge,
+  bundleItem,
+  // A piece's row is named for its folder, as on disk.
+  bundleLabel: node => artifactLabel(node.name),
 });

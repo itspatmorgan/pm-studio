@@ -66,16 +66,17 @@ No new file types: every version is a view (`.tsx`), as the brief decides.
   with its name and line under it. Search (`?q=`) matches projects and their pieces.
 - `VisualPage.tsx` is a project's page. At `/visuals/<project>` it shows the project's pieces in its order, each at its
   lead version. At a version's address (`/visuals/<project>/<piece>/v03`) it shows that piece: the version large and
-  playing (← and → step through the piece's versions) and a details panel, collapsible from the header, with the
+  playing (← and → step through the piece's versions), a film strip of the piece's versions under it, and a details panel, collapsible from the header, with the
   version's status and note. Compare pins the version on stage, and the next version picked in the list or stepped to
-  sits beside it. "Tune" opens the version in the ordinary viewer (`?mode=viewer`) with its DialKit dials, when it has
+  sits beside it, picked from the strip. "Tune" opens the version in the ordinary viewer (`?mode=viewer`) with its DialKit dials, when it has
   any; "Iterate" copies a prompt for the agent to make the next version.
 - `server.ts` is the route the panel saves through (`POST /__studio/visuals/record`): it changes one version's status or
   note in the project's `_iterations.json`, for its maintainers only, keeping every other entry as it is on disk, and
   moves the piece's previous selection to shortlisted when another is selected.
-- `nav.tsx` is the project's file tree policy: the pieces come first in the project's order, each a folder of its
-  versions with their status (selected first, rejected last), then the project's own files, then `exports/`. Piece
-  folders and `exports/` can't be renamed or moved from the tree.
+- `nav.tsx` is the project's file tree policy: the pieces come first in the project's order, one row each named for
+  its folder (the folder bundles its versions, and its row opens the lead one and stays lit on any of them), then the
+  project's own files, then `exports/`. Piece folders and `exports/` can't be renamed or moved from the tree. The
+  piece page's film strip lists the versions.
 - **Performance.** Every live preview is mounted only near the screen and held still (the view module's still embeds)
   unless it is the one being looked at: the stage plays; index tiles play while pointed at; board tiles play while on
   screen and pause behind the peek.
@@ -112,7 +113,8 @@ These platform changes were made in this studio for Visuals and Snapshots, and a
   `src/platform/node/lib/module-builds.js`, the type in `src/platform/core/modules/index.ts`).
 - **The front page with a board.** `Home.tsx` gives the first screen to the greeting and a large search over a faint dot
   field, and the board starts below it under a fade that lifts when you scroll.
-- **Tree badges and order.** `FileTreePolicy` takes `arrange(nodes, context)` and `badge(item, context)`
+- **Tree badges, order and bundled folders.** `FileTreePolicy` takes `arrange(nodes, context)` and `badge(item, context)`;
+  `bundleItem` also gets the context, and `bundleLabel(node)` names a bundled folder's row for the folder
   (`src/platform/app/files/FileTree.tsx`, `FileTreeContext` in `#studio/ui`), the brief's "item badges" and "policy
   ordering" hooks.
 - **`withItems` in `#studio/data`.** Exported so a module can build an artifact origin for a view it finds through `allPrototypes`.

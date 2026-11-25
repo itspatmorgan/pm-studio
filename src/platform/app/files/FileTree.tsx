@@ -280,7 +280,10 @@ export type FileTreePolicy = {
   canMoveTo?(source: { path: string; dir: boolean }, folder: string): boolean;
   hideFolderControls?: boolean;
   itemForNode?(node: FileNode, items: Map<string, Artifact>): Artifact | undefined;
-  bundleItem?(node: FileNode, items: Map<string, Artifact>): Artifact | undefined;
+  bundleItem?(node: FileNode, items: Map<string, Artifact>, context: FileTreeContext): Artifact | undefined;
+  // The name a bundled folder's row shows, when it should be the folder's rather than its item's: a visual's piece
+  // shows its folder's name, not the name of the version it opens.
+  bundleLabel?(node: FileNode): string | undefined;
   creationTarget?: string;
   // The order of the rows, on top of the prototype's order: a section can put some first, such as a visual's selected
   // version. It gets every level of the tree and returns it rearranged, never with rows added or removed.
@@ -799,7 +802,7 @@ export default function FileTree({
         );
       }
       if (node.dir) {
-        const bundled = policy.bundleItem?.(node, items);
+        const bundled = policy.bundleItem?.(node, items, { proto, manifest });
         if (bundled) {
           return (
             <Fragment key={node.path}>
@@ -821,7 +824,7 @@ export default function FileTree({
                     />
                   )}
                   <span className='min-w-0 flex-1 truncate' title={repoPath(proto, bundled.path)}>
-                    {artifactLabel(bundled.path, proto)}
+                    {policy.bundleLabel?.(node) ?? artifactLabel(bundled.path, proto)}
                   </span>
                 </Link>,
               )}

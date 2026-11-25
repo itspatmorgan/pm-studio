@@ -204,8 +204,7 @@ function Decision({
             </>
           ) : (
             <p className='text-xs text-pretty text-muted-foreground'>
-              No dials yet. Choose Add DialKit from {versionName(version)}’s menu in the list, or ask your agent for the
-              dials you want.
+              No dials yet. Ask your agent to add DialKit dials to {versionName(version)} for what you want to tune.
             </p>
           )}
         </div>
@@ -300,6 +299,69 @@ const readPanel = () => {
   }
 };
 
+// The piece's versions, oldest to newest, along the bottom of the stage: the nav says which piece you're on, the strip
+// says which version. Each is a still of the version at its shape; picking one puts it on stage (or beside the pinned
+// one while comparing).
+function Strip({
+  visual,
+  proto,
+  current,
+  pinned,
+  hint,
+  onPick,
+}: {
+  visual: VisualEntry;
+  proto: Prototype;
+  current: VisualVersion;
+  pinned?: VisualVersion;
+  hint: string;
+  onPick: (version: VisualVersion) => void;
+}) {
+  const H = 56;
+  return (
+    <nav aria-label='Versions' className='flex shrink-0 items-end gap-4 border-t border-border px-5 py-3'>
+      <ol className='flex min-w-0 flex-1 items-end gap-2 overflow-x-auto pb-0.5 [scrollbar-width:thin]'>
+        {visual.versions.map(version => {
+          const format = FORMATS[version.format];
+          const on = version.studioId === current.studioId;
+          const held = version.studioId === pinned?.studioId;
+          return (
+            <li key={version.studioId} className='shrink-0'>
+              <button
+                type='button'
+                aria-current={on ? 'true' : undefined}
+                aria-label={`${versionName(version)}, ${LABEL[version.status]}`}
+                onClick={() => !on && onPick(version)}
+                className='group flex flex-col items-start gap-1 rounded-md outline-none'
+              >
+                <Fitted
+                  visual={visual}
+                  version={version}
+                  proto={proto}
+                  box={{ width: (H * format.width) / format.height, height: H }}
+                  still
+                  className={cn(
+                    'rounded-md transition-shadow',
+                    on || held
+                      ? 'ring-2 ring-foreground'
+                      : 'group-hover:ring-foreground/30 group-focus-visible:ring-2 group-focus-visible:ring-ring',
+                  )}
+                />
+                <span className='flex items-center gap-1.5 text-[11px] leading-4 text-muted-foreground tabular-nums'>
+                  <span aria-hidden className={cn('size-1.5 rounded-full', DOT[version.status])} />
+                  <span className={cn(on && 'font-medium text-foreground')}>{versionName(version)}</span>
+                  {held && <span>pinned</span>}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+      {hint && <p className='hidden shrink-0 pb-5 text-xs text-muted-foreground sm:block'>{hint}</p>}
+    </nav>
+  );
+}
+
 function PiecePage({
   project,
   visual,
@@ -356,19 +418,19 @@ function PiecePage({
   const gap = 24;
   const cell = {
     width: (size.width - pad * 2 - gap * (shown.length - 1)) / shown.length,
-    height: size.height - pad * 2 - 28,
+    height: size.height - pad - 28,
   };
   const step = (by: number) => open(versions[(at + by + versions.length) % versions.length]!);
   const hint = pinned
     ? comparing
       ? 'Pick another version to compare, or press Esc'
-      : 'Pick a version in the list to compare'
+      : 'Pick a version to compare'
     : versions.length > 1
       ? '← → to step through versions'
       : '';
   return (
     <main className='flex min-w-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden'>
-      <div className='flex min-h-0 min-w-0 flex-1 flex-col'>
+      <div className='flex min-w-0 shrink-0 flex-col lg:min-h-0 lg:flex-1 lg:shrink'>
         <header className='flex items-start justify-between gap-3 px-5 pt-5'>
           <div className='min-w-0'>
             <h1 className='truncate text-lg font-semibold tracking-tight text-foreground'>{visual.title}</h1>
@@ -437,8 +499,15 @@ function PiecePage({
               </button>
             </>
           )}
-          {hint && <p className='absolute bottom-4 left-0 w-full text-center text-xs text-muted-foreground'>{hint}</p>}
         </div>
+        <Strip
+          visual={visual}
+          proto={proto}
+          current={current}
+          pinned={comparing ? pinned : undefined}
+          hint={hint}
+          onPick={open}
+        />
       </div>
       {panel && <Decision project={project} visual={visual} version={current} proto={proto} editable={editable} tunable={tunable} />}
     </main>
