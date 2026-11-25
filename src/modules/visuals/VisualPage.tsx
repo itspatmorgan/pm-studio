@@ -1,24 +1,31 @@
-// A visual's own page (/visuals/<id>), beside its navigation: where you look at its versions, compare them, and decide.
+// A visual's own page (/visuals/<id>/iterations/<version>), beside its navigation: where you look at its versions,
+// compare them, and decide. The navigation is the list of versions (nav.tsx: status, selected first); picking one there
+// puts it here, and its address is the version's own.
 //
-// - The stage shows one version large, playing, at its true shape. ← and → step through the versions.
-// - The strip under it is every version in order, v01 first, held still, with its status, so the history reads at a
-//   glance and any version is one click away.
-// - Compare pins the version on stage and puts a second beside it; the strip and the arrow keys then change the second,
-//   so you can cycle candidates against the one you like.
+// - The stage shows the version large, playing, at its true shape. ← and → step through the versions.
+// - Compare pins the version on stage and puts the next one you pick beside it, from the navigation or with the arrow
+//   keys, so you can cycle candidates against the one you like.
 // - The panel on the right is the decision: the version's status and your note on it, saved to _iterations.json through
 //   the module's route (server.ts), and a prompt to make the next version from it, for the agent.
 //
-// Performance: only the stage plays. The strip's versions draw once and hold still, and only while on screen.
-import { useEffect, useRef, useState } from 'react';
-import { Link } from '@tanstack/react-router';
+// Performance: only the stage plays. The visual's address alone (/visuals/<id>) opens its lead version.
+import { useEffect, useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { ArrowLeft01Icon, ArrowRight01Icon, Copy01Icon, LinkSquare02Icon } from '@hugeicons/core-free-icons';
-import type { Prototype } from '#studio/data';
-import { callModule, canChangePrototype, useManifest, useMe } from '#studio/data';
+import {
+  ArrowLeft01Icon,
+  ArrowRight01Icon,
+  Copy01Icon,
+  PanelRightCloseIcon,
+  PanelRightOpenIcon,
+  SlidersHorizontalIcon,
+} from '@hugeicons/core-free-icons';
+import type { Artifact, Prototype } from '#studio/data';
+import { callModule, canChangePrototype, contribution, useManifest, useMe } from '#studio/data';
 import { cn } from '#studio/runtime';
 import { Button, Textarea, toast } from '#studio/components';
 import { FORMATS } from './lib/formats.ts';
-import { Live, data, useNear, useSize, versionHref, versionName } from './shared.tsx';
+import { Live, data, useSize, versionHref, versionName } from './shared.tsx';
 import { type Status, type VisualEntry, type VisualVersion } from './visuals.ts';
 
 const LABEL: Record<Status, string> = {
@@ -91,70 +98,22 @@ function Fitted({
   );
 }
 
-function StripItem({
-  visual,
-  version,
-  proto,
-  active,
-  pinned,
-  onPick,
-}: {
-  visual: VisualEntry;
-  version: VisualVersion;
-  proto: Prototype;
-  active: boolean;
-  pinned: boolean;
-  onPick: () => void;
-}) {
-  const ref = useRef<HTMLButtonElement>(null);
-  const near = useNear(ref, { release: true });
-  const format = FORMATS[version.format];
-  const height = 56;
-  const width = (height * format.width) / format.height;
-  useEffect(() => {
-    if (active) ref.current?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
-  }, [active]);
-  return (
-    <button
-      ref={ref}
-      type='button'
-      onClick={onPick}
-      aria-pressed={active}
-      aria-label={`${versionName(version)}, ${LABEL[version.status]}`}
-      className='group flex shrink-0 flex-col items-start gap-1.5 rounded-lg p-1 outline-none focus-visible:ring-2 focus-visible:ring-ring'
-    >
-      <span
-        className={cn(
-          'block overflow-hidden rounded-md ring-1 ring-foreground/[0.07] transition-[box-shadow,opacity] duration-150',
-          active ? 'ring-2 ring-foreground' : pinned ? 'ring-2 ring-foreground/30' : 'group-hover:ring-foreground/25',
-          version.status === 'rejected' && !active && 'opacity-50',
-        )}
-        style={{ width, height }}
-      >
-        {near && (
-          <Fitted visual={visual} version={version} proto={proto} box={{ width, height }} still className='rounded-none ring-0' />
-        )}
-      </span>
-      <span className='flex items-center gap-1.5 px-0.5 text-xs text-muted-foreground tabular-nums'>
-        <span aria-hidden className={cn('size-1.5 rounded-full', DOT[version.status])} />
-        <span className={cn(active && 'font-medium text-foreground')}>{versionName(version)}</span>
-      </span>
-    </button>
-  );
-}
-
 function Decision({
   visual,
   version,
   proto,
   editable,
+  tunable,
 }: {
   visual: VisualEntry;
   version: VisualVersion;
   proto: Prototype;
   editable: boolean;
+  // Whether DialKit is on, and whether this version has dials: null while DialKit is off.
+  tunable: boolean | null;
 }) {
   const { save, saving } = useSave(proto);
+  const navigate = useNavigate();
   const [note, setNote] = useState(version.note ?? '');
   useEffect(() => setNote(version.note ?? ''), [version.studioId, version.note]);
   const dirty = note.trim() !== (version.note ?? '');
@@ -163,18 +122,12 @@ function Decision({
     note.trim() ? `: ${note.trim()}` : '.'
   }`;
   return (
-    <aside className='flex w-full shrink-0 flex-col gap-6 border-t border-border p-6 lg:w-[320px] lg:border-t-0 lg:border-l'>
+    <aside
+      aria-label={`${versionName(version)} details`}
+      className='flex w-full shrink-0 flex-col gap-5 overflow-y-auto border-t border-border p-5 lg:w-[280px] lg:border-t-0 lg:border-l'
+    >
       <div>
-        <div className='flex items-baseline justify-between'>
-          <h2 className='text-base font-semibold text-foreground tabular-nums'>{versionName(version)}</h2>
-          <Link
-            to={versionHref(visual, version) as never}
-            className='flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground'
-          >
-            Open on its own
-            <HugeiconsIcon icon={LinkSquare02Icon} size={12} aria-hidden />
-          </Link>
-        </div>
+        <h2 className='text-sm font-semibold text-foreground tabular-nums'>{versionName(version)}</h2>
         <p className='mt-0.5 text-xs text-muted-foreground'>{FORMATS[version.format].label}</p>
       </div>
       <div>
@@ -224,10 +177,40 @@ function Decision({
           <p className='text-sm text-pretty text-foreground'>{version.note || <span className='text-muted-foreground'>No note</span>}</p>
         )}
       </div>
+      {editable && tunable !== null && (
+        <div>
+          <div className='mb-2 text-xs font-medium text-muted-foreground'>Tune</div>
+          {tunable ? (
+            <>
+              <Button
+                variant='outline'
+                size='sm'
+                className='w-full justify-center gap-2'
+                onClick={() =>
+                  void navigate({ to: versionHref(visual, version) as never, search: { mode: 'viewer' } as never })
+                }
+              >
+                <HugeiconsIcon icon={SlidersHorizontalIcon} aria-hidden />
+                Tune {versionName(version)} with DialKit
+              </Button>
+              <p className='mt-2 text-xs text-pretty text-muted-foreground'>
+                Opens it with its dials. Save to code changes {versionName(version)} itself, so iterate first to keep this
+                one as it is.
+              </p>
+            </>
+          ) : (
+            <p className='text-xs text-pretty text-muted-foreground'>
+              No dials yet. Choose Add DialKit from {versionName(version)}’s menu in the list, or ask your agent for the
+              dials you want.
+            </p>
+          )}
+        </div>
+      )}
       {editable && (
         <div className='mt-auto'>
           <Button
             variant='outline'
+            size='sm'
             className='w-full justify-center gap-2'
             onClick={() =>
               void navigator.clipboard.writeText(prompt).then(() => toast.add({ title: `Prompt for ${next} copied` }))
@@ -243,83 +226,130 @@ function Decision({
   );
 }
 
-export function VisualPage({ proto }: { proto: Prototype }) {
-  const index = data(useManifest());
+// Whether the details panel is open, remembered in this browser: Studio often runs beside a coding harness, so the stage
+// can take the whole width.
+const PANEL = 'visuals:details';
+const readPanel = () => {
+  try {
+    return localStorage.getItem(PANEL) !== 'closed';
+  } catch {
+    return true;
+  }
+};
+
+export function VisualPage({ proto, item }: { proto: Prototype; item?: Artifact }) {
+  const manifest = useManifest();
+  const index = data(manifest);
+  const [panel, setPanel] = useState(readPanel);
+  const togglePanel = () =>
+    setPanel(open => {
+      try {
+        localStorage.setItem(PANEL, open ? 'closed' : 'open');
+      } catch {}
+      return !open;
+    });
   const me = useMe();
+  const navigate = useNavigate();
   const visual = index?.visuals.find(v => v.id === proto.id);
   const versions = visual?.versions ?? [];
   const lead = visual?.selected ?? versions.at(-1);
-  const [currentId, setCurrentId] = useState(lead?.studioId);
+  const current = versions.find(v => v.path === item?.path);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [stage, size] = useSize<HTMLDivElement>();
-  const at = Math.max(0, versions.findIndex(v => v.studioId === currentId));
-  const current = versions[at];
+  const at = current ? versions.indexOf(current) : -1;
   const pinned = versions.find(v => v.studioId === pinnedId);
+  const open = (version: VisualVersion, replace = false) =>
+    visual && void navigate({ to: versionHref(visual, version) as never, replace });
+  // The visual's own address opens its lead version, so the navigation always shows which one is on stage.
+  useEffect(() => {
+    if (visual && lead && !current) open(lead, true);
+  });
   // ← and → step through the versions, unless you're typing.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
       if (target.closest('input, textarea, [contenteditable]') || event.metaKey || event.ctrlKey || event.altKey) return;
       const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-      if (step && versions.length > 1) {
+      if (step && versions.length > 1 && at >= 0) {
         event.preventDefault();
-        setCurrentId(versions[(at + step + versions.length) % versions.length]!.studioId);
+        open(versions[(at + step + versions.length) % versions.length]!);
       }
       if (event.key === 'Escape') setPinnedId(null);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [versions, at]);
+  });
   if (!index || !visual || !current) return null;
   const family = index.families.find(f => f.id === visual.family);
   const collections = visual.collections.map(id => index.collections.find(c => c.id === id)?.label ?? id);
   const editable = import.meta.env.DEV && canChangePrototype(proto, me);
+  // DialKit's build lists the views that use it; null while DialKit is off.
+  const dials = contribution<{ views: string[] }>(manifest, 'dialkit');
+  const tunable = dials ? dials.views.includes(`src/visuals/${visual.id}/${current.path}`) : null;
   const comparing = Boolean(pinned && pinned.studioId !== current.studioId);
   const shown = comparing ? [pinned!, current] : [current];
-  const pad = 40;
+  const pad = 32;
   const gap = 24;
   const cell = {
     width: (size.width - pad * 2 - gap * (shown.length - 1)) / shown.length,
-    height: size.height - pad * 2 - (comparing ? 28 : 0),
+    height: size.height - pad * 2 - 28,
   };
-  const step = (by: number) => setCurrentId(versions[(at + by + versions.length) % versions.length]!.studioId);
+  const step = (by: number) => open(versions[(at + by + versions.length) % versions.length]!);
+  const hint = pinned
+    ? comparing
+      ? 'Pick another version to compare, or press Esc'
+      : 'Pick a version in the list to compare'
+    : versions.length > 1
+      ? '← → to step through versions'
+      : '';
   return (
     <main className='flex min-w-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden'>
       <div className='flex min-h-0 min-w-0 flex-1 flex-col'>
-        <header className='flex flex-wrap items-start justify-between gap-3 px-6 pt-6'>
+        <header className='flex items-start justify-between gap-3 px-5 pt-5'>
           <div className='min-w-0'>
-            <h1 className='truncate text-xl font-semibold tracking-tight text-foreground'>{visual.title}</h1>
+            <h1 className='truncate text-lg font-semibold tracking-tight text-foreground'>{visual.title}</h1>
             <p className='mt-0.5 truncate text-sm text-muted-foreground'>
-              {[family?.label, ...collections].filter(Boolean).join(' · ')}
+              {[family?.label, ...collections, `${versions.length} ${versions.length === 1 ? 'version' : 'versions'}`]
+                .filter(Boolean)
+                .join(' · ')}
             </p>
           </div>
-          {versions.length > 1 && (
+          <div className='flex items-center gap-1.5'>
+            {versions.length > 1 && (
+              <Button
+                variant={pinned ? 'secondary' : 'outline'}
+                size='sm'
+                aria-pressed={Boolean(pinned)}
+                onClick={() => setPinnedId(pinned ? null : current.studioId)}
+              >
+                {pinned ? 'Done comparing' : 'Compare'}
+              </Button>
+            )}
             <Button
-              variant={comparing ? 'secondary' : 'outline'}
-              size='sm'
-              aria-pressed={comparing}
-              onClick={() => {
-                if (comparing) return setPinnedId(null);
-                // Pin the version on stage, and start the comparison with its neighbour.
-                setPinnedId(current.studioId);
-                step(at > 0 ? -1 : 1);
-              }}
+              variant='ghost'
+              size='icon-sm'
+              aria-label={panel ? 'Hide details' : 'Show details'}
+              title={panel ? 'Hide details' : 'Show details'}
+              aria-pressed={panel}
+              onClick={togglePanel}
             >
-              {comparing ? 'Done comparing' : 'Compare'}
+              <HugeiconsIcon icon={panel ? PanelRightCloseIcon : PanelRightOpenIcon} />
             </Button>
-          )}
+          </div>
         </header>
-        <div ref={stage} className='relative flex min-h-[320px] flex-1 items-center justify-center lg:min-h-0' style={{ gap }}>
+        <div
+          ref={stage}
+          className='relative flex min-h-[360px] flex-1 items-center justify-center lg:min-h-0'
+          style={{ gap }}
+        >
           {cell.width > 0 &&
             cell.height > 0 &&
             shown.map(version => (
               <figure key={version.studioId} className='flex flex-col items-center gap-2'>
-                {comparing && (
-                  <figcaption className='text-xs text-muted-foreground tabular-nums'>
-                    <span className='font-medium text-foreground'>{versionName(version)}</span>
-                    {version === pinned ? ' · pinned' : ''} · {LABEL[version.status]}
-                  </figcaption>
-                )}
+                <figcaption className='text-xs text-muted-foreground tabular-nums'>
+                  <span className='font-medium text-foreground'>{versionName(version)}</span>
+                  {comparing && version === pinned ? ' · pinned' : ''} · {LABEL[version.status]}
+                </figcaption>
                 <Fitted visual={visual} version={version} proto={proto} box={cell} still={false} />
               </figure>
             ))}
@@ -343,30 +373,10 @@ export function VisualPage({ proto }: { proto: Prototype }) {
               </button>
             </>
           )}
-        </div>
-        <div className='border-t border-border px-5 pt-3 pb-4'>
-          <div className='mb-1.5 flex items-baseline justify-between px-1 text-xs text-muted-foreground'>
-            <span>
-              {versions.length} {versions.length === 1 ? 'version' : 'versions'}
-            </span>
-            {versions.length > 1 && <span>{comparing ? 'Pick a version to compare' : '← → to step through'}</span>}
-          </div>
-          <div className='flex gap-1 overflow-x-auto'>
-            {versions.map(version => (
-              <StripItem
-                key={version.studioId}
-                visual={visual}
-                version={version}
-                proto={proto}
-                active={version.studioId === current.studioId}
-                pinned={version.studioId === pinned?.studioId}
-                onPick={() => setCurrentId(version.studioId)}
-              />
-            ))}
-          </div>
+          {hint && <p className='absolute bottom-4 left-0 w-full text-center text-xs text-muted-foreground'>{hint}</p>}
         </div>
       </div>
-      <Decision visual={visual} version={current} proto={proto} editable={editable} />
+      {panel && <Decision visual={visual} version={current} proto={proto} editable={editable} tunable={tunable} />}
     </main>
   );
 }

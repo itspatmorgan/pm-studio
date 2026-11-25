@@ -25,5 +25,6 @@ export default {
   ],
   homeBoard: Board,
   // A visual opens on its page of versions, and its navigation knows its standard folders and each version's status.
-  sectionItem: { policy: visualPolicy, landing: VisualPage },
+  // Its versions open on that page too, so the navigation is the page's list of versions.
+  sectionItem: { policy: visualPolicy, landing: VisualPage, shows: item => item.path.startsWith('iterations/') },
 } satisfies ModuleApp;

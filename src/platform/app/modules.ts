@@ -69,13 +69,15 @@ export type ModuleApp = {
   palette?: ComponentType<PaletteContext>;
   // Where its palette groups sit among the other modules' groups, low first, when that differs from `order`.
   paletteOrder?: number;
-  // How the items of its section open, for a module whose items need more than a prototype's viewer. Both are optional:
+  // How the items of its section open, for a module whose items need more than a prototype's viewer. All optional:
   // `policy` adjusts the item's file tree (it gets the prototype policy and returns the section's, to add badges, an
-  // order, or fixed folders), and `landing` is what an item's own address (/<section>/<id>) shows before anything in it
-  // is opened, in place of its first item. The item's navigation stays beside it either way.
+  // order, or fixed folders); `landing` is the module's own page for an item, shown at the item's own address
+  // (/<section>/<id>) in place of its first file; and `shows` names the files the landing shows in place of the viewer,
+  // so opening one of them from the navigation opens it in the landing (`item`). The navigation stays beside it.
   sectionItem?: {
     policy?: (base: FileTreePolicy) => FileTreePolicy;
-    landing?: ComponentType<{ proto: Prototype }>;
+    landing?: ComponentType<{ proto: Prototype; item?: Artifact }>;
+    shows?: (item: Artifact) => boolean;
   };
   /** @stable Where the shared Documentation address (/documentation) opens, instead of the Context & Skills browser. Receives the manifest; return undefined to leave the default. */
   landing?: (manifest: Manifest) => string | undefined;

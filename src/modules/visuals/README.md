@@ -58,10 +58,12 @@ No new file types: every version is a view (`.tsx`), as the brief decides.
   view, since it is a picture library: the visuals themselves in justified rows that keep each format's true shape,
   grouped by collection, with nothing around a visual but its name. Search (`?q=`) and one collection menu
   (`?collection=`) narrow it.
-- `VisualPage.tsx` is what `/visuals/<id>` shows: a stage with one version large and playing (← and → step through
-  them), a strip of every version in order, and a panel with the version's status and note. Compare pins the version on
-  stage and puts another beside it, which the strip and arrow keys then change. "Iterate" copies a prompt for the agent
-  to make the next version.
+- `VisualPage.tsx` is what a version's address (`/visuals/<id>/iterations/v03`) shows, and `/visuals/<id>` opens the
+  lead version. The file tree on the left is the list of versions; the page is a stage with that version large and
+  playing (← and → step to its neighbours) and a details panel, collapsible from the header, with the version's status
+  and note. Compare pins the version on stage, and the next version picked in the list or stepped to sits beside it.
+  "Tune" opens the version in the ordinary viewer (`?mode=viewer`) with its DialKit dials, when it has any; "Iterate"
+  copies a prompt for the agent to make the next version.
 - `server.ts` is the route the panel saves through (`POST /__studio/visuals/record`): it changes one version's status or
   note in `_iterations.json`, for the visual's maintainers only, keeping every other entry as it is on disk, and moves
   the previous selection to shortlisted when another is selected.
@@ -69,7 +71,7 @@ No new file types: every version is a view (`.tsx`), as the brief decides.
   each version shows its status, and versions sort as on the page.
 - **Performance.** Every live preview is mounted only near the screen and held still (the view module's still embeds)
   unless it is the one being looked at: the stage plays; index tiles play while pointed at; board tiles play while on
-  screen and pause behind the peek; strip thumbnails never play.
+  screen and pause behind the peek.
 - `Board.tsx` is Snapshots on the front page: justified rows
   where each tile grows by its format's aspect ratio, a spotlight on hover with the name following the pointer, and a
   peek that grows out of its tile once the live view has drawn; `shared.tsx` holds the live preview and origins.
@@ -91,10 +93,12 @@ These platform changes were made in this studio for Visuals and Snapshots, and a
 - **A front page board slot.** A module app can declare `homeBoard`, which takes over the front page (`src/platform/app/modules.ts`, `src/platform/app/pages/home/Home.tsx`): the greeting and search become one row above the board, and the panel's lists stay in the ⌘K palette.
 - **Section items are prototypes when hosted.** `src/platform/app/artifacts/resolveArtifact.ts` decided a hosted artifact's scope with `isSectionKey`, so a view in a module's own section of prototype-shaped folders counted as system content and could not be embedded. It now uses `SYSTEM_CONTENT_KEY`, as the item page and the source editor do.
 - **Not yet: `pnpm studio identify` for section items.** It accepts only `src/prototypes/<person>/<id>`, so visual folders have no folder-level `studioId` yet; they are addressed by folder name.
-- **A module's own item page and tree policy.** A module app can declare `sectionItem: { policy, landing }`
+- **A module's own item page and tree policy.** A module app can declare `sectionItem: { policy, landing, shows }`
   (`src/platform/app/modules.ts`). `PrototypeNav` uses `policy(base)` for that section's items, and the section item
   route shows `landing` at the item's own address instead of its first item (`src/platform/app/router.tsx`,
-  `PrototypeLayout.tsx`). Prototypes could use the same slot for a cover page.
+  `PrototypeLayout.tsx`). `shows(item)` names files whose address opens the landing too (Visuals: every version), and
+  `?mode=viewer` opens such a file in the ordinary viewer instead, as `?mode=source` opens its source. Prototypes could
+  use the same slot for a cover page.
 - **Module records rebuild the manifest.** `ModuleBuild.records` names files a module's build reads inside items
   (`_iterations.json`); `src/platform/node/build/vite-manifest-watch-plugin.js` rebuilds the manifest when one changes,
   as it does for `meta.json`, so a status set by the app or an agent shows at once (`contributedRecords` in
