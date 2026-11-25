@@ -1,5 +1,5 @@
 /** @studio-id qhnw6qw36yr332vm */
-import { CasePiece, PatternEnginePiece, PixelMarkPiece, PixelWavePiece } from './_components/pieces';
+import { Board } from './_components/board';
 
 // Studio's front page with Snapshots as its home base: the greeting and search panel stay as they are, narrow and
 // centred, and the space below them becomes a board of the studio's best work, every piece live. Using the studio
@@ -24,15 +24,7 @@ export default function StudioHome() {
         </div>
       </main>
       <section aria-label="Snapshots" className="mx-auto w-full max-w-[1600px] px-4 pb-16 sm:px-6">
-        <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-12">
-          <PatternEnginePiece className="aspect-[1200/630] lg:col-span-8" />
-          <PixelWavePiece className="lg:col-span-4" />
-          <CasePiece id="sublime" className="lg:col-span-4" />
-          <CasePiece id="design-studio" className="lg:col-span-4" />
-          <PixelMarkPiece className="aspect-video lg:col-span-4" />
-          <CasePiece id="expansion" className="lg:col-span-6" />
-          <CasePiece id="query-builder" className="lg:col-span-6" />
-        </div>
+        <Board />
       </section>
     </div>
   );
