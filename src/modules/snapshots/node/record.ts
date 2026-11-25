@@ -1,8 +1,8 @@
-// Records each featured piece's snapshot: a short muted loop of the piece being used, with a pointer, and its first
-// frame as a poster, written to public/featured/<id>.mp4 and .jpg. Run it against a running studio:
+// Records each piece's snapshot clip: a short muted loop of the piece being used, with a pointer, and its first
+// frame as a poster, written to public/snapshots/<id>.mp4 and .jpg. Run it against a running studio:
 //
 //   pnpm build && pnpm preview          (in one terminal)
-//   node src/modules/featured/node/record.ts [--url http://localhost:4173] [--only <id>]
+//   node src/modules/snapshots/node/record.ts [--url http://localhost:4173] [--only <id>]
 //
 // It needs ffmpeg on the PATH. Each scene below drives one piece; add one when you feature a new piece.
 import { execFileSync } from 'node:child_process';
@@ -10,7 +10,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { chromium, type Locator, type Page } from 'playwright';
-import { FEATURED } from '../featured.ts';
+import { SNAPSHOTS } from '../snapshots.ts';
 
 type Scene = {
   /** The element the clip is cropped to. */
@@ -54,7 +54,7 @@ class Pointer {
     this.y = y;
     // A script string, since this file runs in Node: the page has a document, this module doesn't.
     await this.page.evaluate(`{
-      const dot = Object.assign(window.document.createElement('div'), { id: 'featured-pointer' });
+      const dot = Object.assign(window.document.createElement('div'), { id: 'snapshots-pointer' });
       dot.innerHTML = ${JSON.stringify(POINTER_SVG)};
       Object.assign(dot.style, { position: 'fixed', left: '0', top: '0', zIndex: '2147483647', pointerEvents: 'none' });
       window.document.body.append(dot);
@@ -64,7 +64,7 @@ class Pointer {
   }
   place() {
     return this.page.evaluate(
-      `window.document.getElementById('featured-pointer').style.transform = 'translate(${this.x - 3}px, ${this.y - 2}px)'`,
+      `window.document.getElementById('snapshots-pointer').style.transform = 'translate(${this.x - 3}px, ${this.y - 2}px)'`,
     );
   }
   async to({ x, y }: { x: number; y: number }, ms = 700) {
@@ -158,8 +158,8 @@ async function launch() {
   }
 }
 
-async function record({ id, href, snapshot }: (typeof FEATURED)[number], scene: Scene) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'featured-'));
+async function record({ id, href, clip: snapshot }: (typeof SNAPSHOTS)[number], scene: Scene) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'snapshots-'));
   const browser = await launch();
   const context = await browser.newContext({
     viewport: VIEWPORT,
@@ -187,7 +187,7 @@ async function record({ id, href, snapshot }: (typeof FEATURED)[number], scene: 
 
   const even = (n: number) => Math.floor(n / 2) * 2;
   const crop = `crop=${even(box.width)}:${even(box.height)}:${Math.round(box.x)}:${Math.round(box.y)},scale=${CLIP_WIDTH}:-2`;
-  const clip = path.resolve('public', `.${snapshot.clip}`);
+  const clip = path.resolve('public', `.${snapshot.video}`);
   const poster = path.resolve('public', `.${snapshot.poster}`);
   fs.mkdirSync(path.dirname(clip), { recursive: true });
   const ffmpeg = (...a: string[]) => execFileSync('ffmpeg', ['-y', '-loglevel', 'error', ...a]);
@@ -199,7 +199,7 @@ async function record({ id, href, snapshot }: (typeof FEATURED)[number], scene: 
   console.log(`${id}: ${length.toFixed(1)}s, ${kb(clip)} KB clip, ${kb(poster)} KB poster`);
 }
 
-for (const entry of FEATURED) {
+for (const entry of SNAPSHOTS) {
   if (ONLY && entry.id !== ONLY) continue;
   const scene = SCENES[entry.id];
   if (!scene) {

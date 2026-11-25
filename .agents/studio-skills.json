@@ -89,14 +89,6 @@
       "kind": "link",
       "hash": "1ac034ab4ecf96b0a167a2ab287157f0d7c7a380663fef9d3f410d179f22d520"
     },
-    ".agents/skills/studio-module-featured-use-featured/SKILL.md": {
-      "kind": "file",
-      "hash": "f4c5cf4826552464e9a78642ecbf46db2da2275980b65164aca22eedc761e93b"
-    },
-    ".claude/skills/studio-module-featured-use-featured": {
-      "kind": "link",
-      "hash": "be35ada92d92d184317e7f03e74f8a19d7b8d69eceb058c1d69c3fe8a80a2ddb"
-    },
     ".agents/skills/studio-module-onboarding-use-onboarding/SKILL.md": {
       "kind": "file",
       "hash": "3122e11e4cf024723bea034e3cf53915437c59832a12a7542f4823e548206aad"
@@ -120,6 +112,14 @@
     ".claude/skills/studio-module-prototypes-organize-prototype": {
       "kind": "link",
       "hash": "1a72f6a36656836f44f22f4a536dddbc642d4654d1a7dae3b506b27518a0a4ee"
+    },
+    ".agents/skills/studio-module-snapshots-use-snapshots/SKILL.md": {
+      "kind": "file",
+      "hash": "53d907efbcc381479b698d02f7348fca87254ec355a6b331ac5c49968279ea42"
+    },
+    ".claude/skills/studio-module-snapshots-use-snapshots": {
+      "kind": "link",
+      "hash": "a9027d0026b863bd8782afe67fb12ac157fd0564e7fa58e0e7059a676d72e65c"
     },
     ".agents/skills/studio-module-systems-document-component/SKILL.md": {
       "kind": "file",
