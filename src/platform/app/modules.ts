@@ -60,6 +60,9 @@ export type ModuleApp = {
   // Where its overview sits on the front page, low first, when that differs from `order`: while you run the app locally
   // (where your own work comes first) and on the deployed site (where what colleagues come for does).
   homeOrder?: { local?: number; deployed?: number };
+  // A full-width area below the front page's panel, for a module whose front page contribution is visual rather than a
+  // list: the panel stays narrow and first, and this fills the space under it. Modules with one show in `homeOrder`.
+  homeBoard?: ComponentType<{ manifest: Manifest }>;
   // CommandItems it adds to the palette's Places group, and groups of its own.
   places?: ComponentType<PaletteContext>;
   palette?: ComponentType<PaletteContext>;
@@ -85,9 +88,9 @@ export const moduleApps: InstalledModule[] = Object.entries(apps)
   .sort((a, b) => a.app.order - b.app.order);
 
 // The modules that have something for the front page, in the order they show there.
-export const homeApps = (local: boolean): InstalledModule[] =>
+export const homeApps = (local: boolean, slot: 'overview' | 'homeBoard' = 'overview'): InstalledModule[] =>
   moduleApps
-    .filter(({ app }) => app.overview)
+    .filter(({ app }) => app[slot])
     .sort(
       (a, b) =>
         (a.app.homeOrder?.[local ? 'local' : 'deployed'] ?? a.app.order) -

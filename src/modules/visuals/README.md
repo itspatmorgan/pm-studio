@@ -39,4 +39,9 @@ the module is refused while views import it.
 
 ## Upstream candidates
 
-Nothing in `src/platform/` has changed for Visuals yet. Changes that later steps need are logged here as they land.
+These platform changes were made in this studio for Visuals and Snapshots, and are candidates to send upstream once they hold up:
+
+- **A board surface for views.** `src/platform/modules/view/type.ts` lists `visuals/board` in the view type's `embeds`, so a view can be hosted on the board this module declares.
+- **Bare hosting.** `ArtifactHost` takes `chrome: 'frame' | 'bare'`. `bare` draws the artifact without the embed frame, for places where the visual is the whole tile.
+- **A front page board slot.** A module app can declare `homeBoard`, drawn full width under the front page panel (`src/platform/app/modules.ts`, `src/platform/app/pages/home/Home.tsx`). The panel sits higher when a board is present.
+- **`withItems` in `#studio/data`.** Exported so a module can build an artifact origin for a view it finds through `allPrototypes`.

@@ -20,7 +20,8 @@ export const FORMATS = {
   scene: { label: 'Product scene', width: 1120, height: 720, note: 'A case study scene at the size its stage is drawn, with room for its caption', kind: 'channel' },
   'board-wide': { label: 'Wide tile', width: 1200, height: 630, note: 'The board’s lead tile, and the article art’s own shape', kind: 'board' },
   'board-card': { label: 'Card tile', width: 800, height: 450, note: 'A 16:9 tile, the shape of a Work card visual', kind: 'board' },
-  'board-portrait': { label: 'Portrait tile', width: 640, height: 800, note: 'A 4:5 tile beside the wide one', kind: 'board' },
+  'board-companion': { label: 'Companion tile', width: 600, height: 630, note: 'Beside the wide tile, a third of the board at the same height', kind: 'board' },
+  'board-portrait': { label: 'Portrait tile', width: 640, height: 800, note: 'A 4:5 tile', kind: 'board' },
   'board-square': { label: 'Square tile', width: 720, height: 720, note: 'A square tile for marks and details', kind: 'board' },
 } as const satisfies Record<string, Format>;
 

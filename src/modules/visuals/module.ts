@@ -11,5 +11,7 @@ export default {
   requires: '0.5.0',
   description: 'Visuals drawn at named formats: a shared formats library and a frame that renders any view at one.',
   optional: true,
+  // A board: a page of visuals shown live, each one its own origin, such as Snapshots on the front page.
+  hosts: [{ id: 'visuals/board', scopes: ['prototype'], references: 'same-prototype' }],
   instructions: [{ path: 'skills/use-visuals/', when: 'asks to make a visual, add a format, or draw a view at a format' }],
 } satisfies ModuleSpec;

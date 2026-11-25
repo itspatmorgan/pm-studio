@@ -8,8 +8,7 @@ export default {
   label: 'Snapshots',
   version: '0.1.0',
   requires: '0.5.0',
-  description: 'A visual feed of the studio’s most compelling work, each piece shown in use, mirrored on the website.',
+  description: 'A board of the studio’s most compelling visuals on the front page, each live, mirrored on the website.',
   optional: true,
-  section: { key: 'snapshots' },
   instructions: [{ path: 'skills/use-snapshots/', when: 'asks to add, change, or re-record Snapshots' }],
 } satisfies ModuleSpec;

@@ -13,6 +13,8 @@ import { chromium, type Locator, type Page } from 'playwright';
 import { SNAPSHOTS } from '../snapshots.ts';
 
 type Scene = {
+  /** The Studio page the scene is played on. */
+  href: string;
   /** The element the clip is cropped to. */
   target: (page: Page) => Locator;
   /** Waits until the piece is settled, before the clip starts. */
@@ -92,6 +94,7 @@ const example = (page: Page, label: string) =>
 
 const SCENES: Record<string, Scene> = {
   'pattern-engine': {
+    href: '/prototypes/vjwrvf5t8z1cbwy3/artifacts/tc3b4fm8y98jv6nx',
     target: page => page.locator('iframe').first(),
     async play(page, pointer) {
       const view = page.frameLocator('iframe').first();
@@ -112,6 +115,7 @@ const SCENES: Record<string, Scene> = {
     },
   },
   'pixel-mark': {
+    href: '/systems/v4576ka1mbpbqdp1/components/logo',
     target: page => example(page, 'Interaction states'),
     async play(page, pointer) {
       const box = example(page, 'Interaction states');
@@ -128,6 +132,7 @@ const SCENES: Record<string, Scene> = {
     },
   },
   'pixel-wave': {
+    href: '/systems/v4576ka1mbpbqdp1/components/pixel-wave-text',
     target: page => example(page, 'Split flap entrance'),
     async ready(page) {
       const button = example(page, 'Split flap entrance').getByRole('button', { name: 'Play' });
@@ -158,7 +163,7 @@ async function launch() {
   }
 }
 
-async function record({ id, href, clip: snapshot }: (typeof SNAPSHOTS)[number], scene: Scene) {
+async function record(id: string, snapshot: { video: string; poster: string }, scene: Scene) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'snapshots-'));
   const browser = await launch();
   const context = await browser.newContext({
@@ -168,7 +173,7 @@ async function record({ id, href, clip: snapshot }: (typeof SNAPSHOTS)[number], 
   });
   const opened = Date.now();
   const page = await context.newPage();
-  await page.goto(new URL(href, BASE).toString(), { waitUntil: 'networkidle' });
+  await page.goto(new URL(scene.href, BASE).toString(), { waitUntil: 'networkidle' });
   const target = scene.target(page);
   await target.scrollIntoViewIfNeeded();
   await wait(1500);
@@ -202,9 +207,10 @@ async function record({ id, href, clip: snapshot }: (typeof SNAPSHOTS)[number], 
 for (const entry of SNAPSHOTS) {
   if (ONLY && entry.id !== ONLY) continue;
   const scene = SCENES[entry.id];
+  if (!entry.clip) continue; // shown live from its view; nothing to record
   if (!scene) {
     console.warn(`${entry.id}: no scene in node/record.ts, so its snapshot wasn't recorded.`);
     continue;
   }
-  await record(entry, scene);
+  await record(entry.id, entry.clip, scene);
 }
