@@ -73,9 +73,11 @@ export type ModuleApp = {
   // `policy` adjusts the item's file tree (it gets the prototype policy and returns the section's, to add badges, an
   // order, or fixed folders); `landing` is the module's own page for an item, shown at the item's own address
   // (/<section>/<id>) in place of its first file; and `shows` names the files the landing shows in place of the viewer,
-  // so opening one of them from the navigation opens it in the landing (`item`). The navigation stays beside it.
+  // so opening one of them from the navigation opens it in the landing (`item`). The navigation stays beside it, and
+  // `navTop` adds rows of the module's own above the item's files, such as a row for the landing itself.
   sectionItem?: {
     policy?: (base: FileTreePolicy) => FileTreePolicy;
+    navTop?: ComponentType<{ proto: Prototype; current: Artifact | undefined }>;
     landing?: ComponentType<{ proto: Prototype; item?: Artifact }>;
     shows?: (item: Artifact) => boolean;
   };

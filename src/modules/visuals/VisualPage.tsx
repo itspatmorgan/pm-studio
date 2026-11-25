@@ -1,31 +1,41 @@
-// A visual project's own page, beside its navigation, which lists the project's pieces, each with its versions
-// (nav.tsx: status, selected first).
+// A visual project's own page, beside its navigation, which lists the project's pieces, one row each (nav.tsx).
 //
-// - At the project's address (/visuals/<project>) it shows the project: its pieces in the project's order, each at its
-//   lead version. A project of one piece opens that piece.
+// - At the project's address (/visuals/<project>) it shows Selected, the version picked for each piece, with the pieces
+//   still to decide after them; the navigation's top row (nav.tsx) is this page. A project of one piece opens that piece.
 // - At a version's address (/visuals/<project>/<piece>/v03) it shows that piece: the version large, playing, at its true
 //   shape. ← and → step through the piece's versions. Compare pins the version on stage and puts the next one you pick
-//   beside it, from the navigation or with the arrow keys, so you can cycle candidates against the one you like.
-// - The panel on the right, which folds away from the header, is the decision: the version's status and your note on
-//   it, saved to _iterations.json through the module's route (server.ts), DialKit's dials when the version has them, and
-//   a prompt to make the next version from it, for the agent.
+//   beside it, from the film strip or with the arrow keys, so you can cycle candidates against the one you like.
+// - It is one column, for the narrow pane Studio often gets beside a coding harness, in three layers that each answer one
+//   question. The header says which piece (and its project and format). The stage shows the version. The versions
+//   panel under it holds everything about versions: the film strip that picks one, Compare, and, beside the strip, the
+//   version on stage with its status, Tune when it has DialKit dials, your note, and "Ask for vNN", which copies a prompt
+//   with that note for the agent. The panel folds down to one line that still names the version and its status. Status
+//   and note save to _iterations.json through the module's route (server.ts).
 //
 // Performance: only the stage plays; the project's tiles play while pointed at.
 import { useEffect, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
+  ArrowDown01Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
   Copy01Icon,
-  PanelRightCloseIcon,
-  PanelRightOpenIcon,
   SlidersHorizontalIcon,
 } from '@hugeicons/core-free-icons';
 import type { Artifact, Prototype } from '#studio/data';
 import { callModule, canChangePrototype, contribution, useManifest, useMe } from '#studio/data';
 import { cn } from '#studio/runtime';
-import { Button, Textarea, toast } from '#studio/components';
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+  Textarea,
+  toast,
+} from '#studio/components';
 import { FORMATS } from './lib/formats.ts';
 import { Live, Tiles, data, piecesOf, useOrigins, useSize, useStable, versionHref, versionName } from './shared.tsx';
 import type { Status, VisualEntry, VisualProject, VisualVersion } from './visuals.ts';
@@ -100,135 +110,6 @@ function Fitted({
   );
 }
 
-function Decision({
-  project,
-  visual,
-  version,
-  proto,
-  editable,
-  tunable,
-}: {
-  project: VisualProject;
-  visual: VisualEntry;
-  version: VisualVersion;
-  proto: Prototype;
-  editable: boolean;
-  // Whether DialKit is on, and whether this version has dials: null while DialKit is off.
-  tunable: boolean | null;
-}) {
-  const { save, saving } = useSave(proto);
-  const navigate = useNavigate();
-  const [note, setNote] = useState(version.note ?? '');
-  useEffect(() => setNote(version.note ?? ''), [version.studioId, version.note]);
-  const dirty = note.trim() !== (version.note ?? '');
-  const next = `v${String(visual.versions.length + 1).padStart(2, '0')}`;
-  const prompt = `Make ${next} of "${visual.title}", a piece of the visual project ${project.title} (src/visuals/${visual.id}/), from ${versionName(version)}${
-    note.trim() ? `: ${note.trim()}` : '.'
-  }`;
-  return (
-    <aside
-      aria-label={`${versionName(version)} details`}
-      className='flex w-full shrink-0 flex-col gap-5 overflow-y-auto border-t border-border p-5 lg:w-[280px] lg:border-t-0 lg:border-l'
-    >
-      <div>
-        <h2 className='text-sm font-semibold text-foreground tabular-nums'>{versionName(version)}</h2>
-        <p className='mt-0.5 text-xs text-muted-foreground'>{FORMATS[version.format].label}</p>
-      </div>
-      <div>
-        <div className='mb-2 text-xs font-medium text-muted-foreground'>Status</div>
-        <div role='radiogroup' aria-label='Status' className='grid grid-cols-2 gap-1 rounded-lg bg-muted p-1'>
-          {ORDER.map(status => (
-            <button
-              key={status}
-              type='button'
-              role='radio'
-              aria-checked={version.status === status}
-              disabled={!editable || saving}
-              onClick={() => version.status !== status && void save(version.studioId, { status })}
-              className={cn(
-                'flex h-7 items-center justify-center gap-1.5 rounded-md text-xs transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default',
-                version.status === status
-                  ? 'bg-background font-medium text-foreground shadow-[0_1px_2px_rgb(0_0_0/0.06)]'
-                  : 'text-muted-foreground enabled:hover:text-foreground',
-              )}
-            >
-              <span aria-hidden className={cn('size-1.5 rounded-full', DOT[status])} />
-              {LABEL[status]}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div>
-        <label htmlFor='version-note' className='mb-2 block text-xs font-medium text-muted-foreground'>
-          Note
-        </label>
-        {editable ? (
-          <>
-            <Textarea
-              id='version-note'
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              onBlur={() => dirty && void save(version.studioId, { note: note.trim() })}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && dirty) void save(version.studioId, { note: note.trim() });
-              }}
-              placeholder='What works, what to change next'
-              className='min-h-24 text-sm'
-            />
-            <p className='mt-1.5 text-xs text-muted-foreground'>{saving ? 'Saving…' : dirty ? 'Saves when you leave the field' : ' '}</p>
-          </>
-        ) : (
-          <p className='text-sm text-pretty text-foreground'>{version.note || <span className='text-muted-foreground'>No note</span>}</p>
-        )}
-      </div>
-      {editable && tunable !== null && (
-        <div>
-          <div className='mb-2 text-xs font-medium text-muted-foreground'>Tune</div>
-          {tunable ? (
-            <>
-              <Button
-                variant='outline'
-                size='sm'
-                className='w-full justify-center gap-2'
-                onClick={() =>
-                  void navigate({ to: versionHref(visual, version) as never, search: { mode: 'viewer' } as never })
-                }
-              >
-                <HugeiconsIcon icon={SlidersHorizontalIcon} aria-hidden />
-                Tune {versionName(version)} with DialKit
-              </Button>
-              <p className='mt-2 text-xs text-pretty text-muted-foreground'>
-                Opens it with its dials. Save to code changes {versionName(version)} itself, so iterate first to keep this
-                one as it is.
-              </p>
-            </>
-          ) : (
-            <p className='text-xs text-pretty text-muted-foreground'>
-              No dials yet. Ask your agent to add DialKit dials to {versionName(version)} for what you want to tune.
-            </p>
-          )}
-        </div>
-      )}
-      {editable && (
-        <div className='mt-auto'>
-          <Button
-            variant='outline'
-            size='sm'
-            className='w-full justify-center gap-2'
-            onClick={() =>
-              void navigator.clipboard.writeText(prompt).then(() => toast.add({ title: `Prompt for ${next} copied` }))
-            }
-          >
-            <HugeiconsIcon icon={Copy01Icon} aria-hidden />
-            Iterate: copy prompt for {next}
-          </Button>
-          <p className='mt-2 text-xs text-pretty text-muted-foreground'>Paste it to your agent; the new version appears here.</p>
-        </div>
-      )}
-    </aside>
-  );
-}
-
 export function VisualPage({ proto, item }: { proto: Prototype; item?: Artifact }) {
   const manifest = useManifest();
   const index = data(manifest);
@@ -246,51 +127,112 @@ export function VisualPage({ proto, item }: { proto: Prototype; item?: Artifact 
   return <ProjectPage project={project} pieces={pieces} />;
 }
 
-// The project: its pieces in its order, each at its lead version, under the project's name.
+// The project's page, Selected, which has its own row at the top of the navigation: the version picked for each piece, in
+// the project's order, as the set the project has settled on. Pieces with no pick yet follow under "To decide", each at
+// its newest version, so the page also says what's left.
 function ProjectPage({ project, pieces }: { project: VisualProject; pieces: VisualEntry[] }) {
   const manifest = useManifest();
   const index = data(manifest)!;
   const stable = useStable(pieces);
   const origins = useOrigins(manifest, stable);
   const [area, { width }] = useSize<HTMLDivElement>();
-  const versions = pieces.reduce((n, p) => n + p.versions.length, 0);
+  const decided = pieces.filter(p => p.selected);
+  const open = pieces.filter(p => !p.selected);
+  const family = (p: VisualEntry) => index.families.find(f => f.id === p.family)?.label;
+  const count = (n: number) => `${n} ${n === 1 ? 'version' : 'versions'}`;
   return (
     <main className='min-w-0 flex-1 overflow-y-auto'>
-      <div className='mx-auto w-full max-w-5xl px-6 pt-8 pb-16'>
+      <div ref={area} className='mx-auto w-full max-w-5xl px-6 pt-8 pb-16'>
         <header className='mb-6'>
-          <h1 className='text-lg font-semibold tracking-tight text-foreground'>{project.title}</h1>
+          <h1 className='text-lg font-semibold tracking-tight text-foreground'>Selected</h1>
           <p className='mt-0.5 text-sm text-muted-foreground'>
-            {[project.line, `${pieces.length} pieces`, `${versions} ${versions === 1 ? 'version' : 'versions'}`].join(' · ')}
+            {open.length
+              ? `The version picked for each piece of ${project.title}. ${decided.length} of ${pieces.length} pieces decided.`
+              : `The version picked for each piece of ${project.title}.`}
           </p>
         </header>
-        <div ref={area}>
+        {decided.length > 0 && (
           <Tiles
-            items={pieces.map(p => ({
+            items={decided.map(p => ({
               key: p.id,
               visual: p,
               href: versionHref(p),
               title: p.title,
-              line: [
-                index.families.find(f => f.id === p.family)?.label,
-                p.versions.length > 1 ? `${p.versions.length} versions` : '',
-                p.selected ? '' : 'Needs a decision',
-              ]
-                .filter(Boolean)
-                .join(' · '),
+              line: [versionName(p.selected!), family(p)].filter(Boolean).join(' · '),
             }))}
             origins={origins}
             width={width}
             row={200}
           />
-        </div>
+        )}
+        {open.length > 0 && (
+          <section className={cn(decided.length > 0 && 'mt-12')}>
+            <h2 className='mb-1 text-sm font-semibold text-foreground'>To decide</h2>
+            <p className='mb-4 text-sm text-muted-foreground'>No version picked yet. Each shows its newest.</p>
+            <Tiles
+              items={open.map(p => ({
+                key: p.id,
+                visual: p,
+                href: versionHref(p),
+                title: p.title,
+                line: [count(p.versions.length), family(p)].filter(Boolean).join(' · '),
+              }))}
+              origins={origins}
+              width={width}
+              row={160}
+            />
+          </section>
+        )}
       </div>
     </main>
   );
 }
 
-// Whether the details panel is open, remembered in this browser: Studio often runs beside a coding harness, so the stage
-// can take the whole width.
-const PANEL = 'visuals:details';
+// The version's status, as a compact menu in the header: the dot and word say where it stands, and the menu moves it.
+function StatusMenu({
+  version,
+  editable,
+  saving,
+  onChange,
+}: {
+  version: VisualVersion;
+  editable: boolean;
+  saving: boolean;
+  onChange: (status: Status) => void;
+}) {
+  const face = (
+    <>
+      <span aria-hidden className={cn('size-1.5 rounded-full', DOT[version.status])} />
+      {LABEL[version.status]}
+    </>
+  );
+  if (!editable)
+    return <span className='flex h-7 items-center gap-1.5 px-2 text-xs text-muted-foreground'>{face}</span>;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        disabled={saving}
+        render={<Button variant='ghost' size='sm' className='gap-1.5 text-xs' aria-label={`Status: ${LABEL[version.status]}`} />}
+      >
+        {face}
+        <HugeiconsIcon icon={ArrowDown01Icon} aria-hidden className='text-muted-foreground' />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align='start' className='w-44'>
+        <DropdownMenuRadioGroup value={version.status} onValueChange={next => onChange(next as Status)}>
+          {ORDER.map(status => (
+            <DropdownMenuRadioItem key={status} value={status} className='gap-2'>
+              <span aria-hidden className={cn('size-1.5 rounded-full', DOT[status])} />
+              {LABEL[status]}
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// Whether the versions panel is open, remembered in this browser, so the stage can take the whole height when you want.
+const PANEL = 'visuals:versions';
 const readPanel = () => {
   try {
     return localStorage.getItem(PANEL) !== 'closed';
@@ -299,66 +241,200 @@ const readPanel = () => {
   }
 };
 
-// The piece's versions, oldest to newest, along the bottom of the stage: the nav says which piece you're on, the strip
-// says which version. Each is a still of the version at its shape; picking one puts it on stage (or beside the pinned
-// one while comparing).
-function Strip({
+const iconButton =
+  'grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring';
+
+// The one panel under the stage, and the only place versions are handled. Its first line names it ("Versions"), with
+// Compare and the fold. Open, the film strip picks a version, and beside it the version on stage carries its status,
+// Tune, your note and "Ask for vNN". Folded, the line still says which version is on stage and where it stands.
+function Versions({
+  project,
   visual,
   proto,
   current,
   pinned,
-  hint,
+  comparing,
+  editable,
+  tunable,
   onPick,
+  onCompare,
+  onTune,
 }: {
+  project: VisualProject;
   visual: VisualEntry;
   proto: Prototype;
   current: VisualVersion;
   pinned?: VisualVersion;
-  hint: string;
+  comparing: boolean;
+  editable: boolean;
+  tunable: boolean;
   onPick: (version: VisualVersion) => void;
+  onCompare: () => void;
+  onTune: () => void;
 }) {
+  const [open, setOpen] = useState(readPanel);
+  const toggle = () =>
+    setOpen(was => {
+      try {
+        localStorage.setItem(PANEL, was ? 'closed' : 'open');
+      } catch {}
+      return !was;
+    });
+  const { save, saving } = useSave(proto);
+  const [note, setNote] = useState(current.note ?? '');
+  useEffect(() => setNote(current.note ?? ''), [current.studioId, current.note]);
+  const dirty = note.trim() !== (current.note ?? '');
+  const commit = () => dirty && void save(current.studioId, { note: note.trim() });
+  const versions = visual.versions;
+  const name = versionName(current);
+  const next = `v${String(versions.length + 1).padStart(2, '0')}`;
+  const prompt = `Make ${next} of "${visual.title}", a piece of the visual project ${project.title} (src/visuals/${visual.id}/), from ${name}${
+    note.trim() ? `: ${note.trim()}` : '.'
+  }`;
   const H = 56;
+  const hint = pinned
+    ? comparing
+      ? 'Pick another to compare with the pinned one · Esc to stop'
+      : `${versionName(pinned)} is pinned · pick a version to compare`
+    : versions.length > 1
+      ? '← → steps through versions'
+      : '';
   return (
-    <nav aria-label='Versions' className='flex shrink-0 items-end gap-4 border-t border-border px-5 py-3'>
-      <ol className='flex min-w-0 flex-1 items-end gap-2 overflow-x-auto pb-0.5 [scrollbar-width:thin]'>
-        {visual.versions.map(version => {
-          const format = FORMATS[version.format];
-          const on = version.studioId === current.studioId;
-          const held = version.studioId === pinned?.studioId;
-          return (
-            <li key={version.studioId} className='shrink-0'>
-              <button
-                type='button'
-                aria-current={on ? 'true' : undefined}
-                aria-label={`${versionName(version)}, ${LABEL[version.status]}`}
-                onClick={() => !on && onPick(version)}
-                className='group flex flex-col items-start gap-1 rounded-md outline-none'
-              >
-                <Fitted
-                  visual={visual}
-                  version={version}
-                  proto={proto}
-                  box={{ width: (H * format.width) / format.height, height: H }}
-                  still
-                  className={cn(
-                    'rounded-md transition-shadow',
-                    on || held
-                      ? 'ring-2 ring-foreground'
-                      : 'group-hover:ring-foreground/30 group-focus-visible:ring-2 group-focus-visible:ring-ring',
-                  )}
+    <section aria-label='Versions' className='@container shrink-0 border-t border-border'>
+      <div className='flex h-10 items-center gap-2 px-4'>
+        <button
+          type='button'
+          onClick={toggle}
+          aria-expanded={open}
+          className='-ml-1 flex h-7 shrink-0 items-center gap-1.5 rounded-md px-1.5 text-xs outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring'
+        >
+          <HugeiconsIcon
+            icon={ArrowDown01Icon}
+            size={14}
+            className={cn('text-muted-foreground transition-transform', !open && 'rotate-180')}
+          />
+          <span className='font-medium text-foreground'>Versions</span>
+          <span className='text-muted-foreground tabular-nums'>{versions.length}</span>
+        </button>
+        {!open && (
+          <p className='flex min-w-0 flex-1 items-center gap-1.5 truncate text-xs text-muted-foreground'>
+            <span aria-hidden>·</span>
+            <span className='font-medium text-foreground tabular-nums'>{name}</span>
+            <span aria-hidden className={cn('size-1.5 shrink-0 rounded-full', DOT[current.status])} />
+            {LABEL[current.status]}
+            {current.note && <span className='truncate'>· {current.note}</span>}
+          </p>
+        )}
+        <div className='ml-auto flex shrink-0 items-center gap-3'>
+          {open && hint && <p className='hidden text-xs text-muted-foreground md:block'>{hint}</p>}
+          {versions.length > 1 && (
+            <Button variant={pinned ? 'secondary' : 'ghost'} size='sm' aria-pressed={Boolean(pinned)} onClick={onCompare}>
+              {pinned ? 'Done comparing' : 'Compare'}
+            </Button>
+          )}
+        </div>
+      </div>
+      {open && (
+        <div className='flex flex-col gap-3 px-4 pb-4 @3xl:flex-row @3xl:items-stretch @3xl:gap-5'>
+          <ol aria-label='Pick a version' className='flex min-w-0 shrink-0 items-start gap-2 overflow-x-auto pt-0.5 pb-0.5 @3xl:max-w-[50%]'>
+            {versions.map(version => {
+              const format = FORMATS[version.format];
+              const on = version.studioId === current.studioId;
+              const held = version.studioId === pinned?.studioId;
+              return (
+                <li key={version.studioId} className='shrink-0'>
+                  <button
+                    type='button'
+                    aria-current={on ? 'true' : undefined}
+                    aria-label={`${versionName(version)}, ${LABEL[version.status]}`}
+                    onClick={() => !on && onPick(version)}
+                    className='group flex flex-col items-start gap-1 rounded-md outline-none'
+                  >
+                    <Fitted
+                      visual={visual}
+                      version={version}
+                      proto={proto}
+                      box={{ width: (H * format.width) / format.height, height: H }}
+                      still
+                      className={cn(
+                        'rounded-md transition-shadow',
+                        on || held
+                          ? 'ring-2 ring-foreground'
+                          : 'group-hover:ring-foreground/30 group-focus-visible:ring-2 group-focus-visible:ring-ring',
+                      )}
+                    />
+                    <span className='flex items-center gap-1.5 text-[11px] leading-4 text-muted-foreground tabular-nums'>
+                      <span aria-hidden className={cn('size-1.5 rounded-full', DOT[version.status])} />
+                      <span className={cn(on && 'font-medium text-foreground')}>{versionName(version)}</span>
+                      {held && <span>pinned</span>}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+          <div className='flex min-w-0 flex-1 flex-col gap-2 @3xl:border-l @3xl:border-border @3xl:pl-5'>
+            <div className='flex items-center gap-1'>
+              <span className='mr-1 text-sm font-semibold text-foreground tabular-nums'>{name}</span>
+              <StatusMenu
+                version={current}
+                editable={editable}
+                saving={saving}
+                onChange={status => status !== current.status && void save(current.studioId, { status })}
+              />
+              {tunable && (
+                <button
+                  type='button'
+                  className={iconButton}
+                  aria-label={`Tune ${name} with DialKit`}
+                  title={`Tune ${name} with DialKit (Save to code changes this version)`}
+                  onClick={onTune}
+                >
+                  <HugeiconsIcon icon={SlidersHorizontalIcon} size={16} />
+                </button>
+              )}
+              {editable && (
+                <Button
+                  variant='outline'
+                  size='sm'
+                  className='ml-auto shrink-0 gap-2'
+                  disabled={saving}
+                  title={`Copies a prompt for ${next}, with your note, to give your agent`}
+                  onClick={() => {
+                    commit();
+                    void navigator.clipboard.writeText(prompt).then(() => toast.add({ title: `Prompt for ${next} copied` }));
+                  }}
+                >
+                  <HugeiconsIcon icon={Copy01Icon} aria-hidden />
+                  Ask for {next}
+                </Button>
+              )}
+            </div>
+            {editable ? (
+              <div className='flex'>
+                <Textarea
+                  aria-label={`Note on ${name}`}
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                  onBlur={commit}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) commit();
+                  }}
+                  placeholder='Note: what works, what to change next'
+                  className='min-h-[44px] flex-1 resize-none text-sm'
+                  rows={2}
                 />
-                <span className='flex items-center gap-1.5 text-[11px] leading-4 text-muted-foreground tabular-nums'>
-                  <span aria-hidden className={cn('size-1.5 rounded-full', DOT[version.status])} />
-                  <span className={cn(on && 'font-medium text-foreground')}>{versionName(version)}</span>
-                  {held && <span>pinned</span>}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
-      {hint && <p className='hidden shrink-0 pb-5 text-xs text-muted-foreground sm:block'>{hint}</p>}
-    </nav>
+
+              </div>
+            ) : (
+              <p className='text-sm text-pretty text-foreground'>
+                {current.note || <span className='text-muted-foreground'>No note</span>}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -375,14 +451,6 @@ function PiecePage({
 }) {
   const manifest = useManifest();
   const index = data(manifest)!;
-  const [panel, setPanel] = useState(readPanel);
-  const togglePanel = () =>
-    setPanel(open => {
-      try {
-        localStorage.setItem(PANEL, open ? 'closed' : 'open');
-      } catch {}
-      return !open;
-    });
   const me = useMe();
   const navigate = useNavigate();
   const versions = visual.versions;
@@ -392,15 +460,16 @@ function PiecePage({
   const at = versions.indexOf(current);
   const pinned = versions.find(v => v.studioId === pinnedId);
   const open = (version: VisualVersion) => void navigate({ to: versionHref(visual, version) as never });
+  const step = (by: number) => open(versions[(at + by + versions.length) % versions.length]!);
   // ← and → step through the piece's versions, unless you're typing.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
       if (target.closest('input, textarea, [contenteditable]') || event.metaKey || event.ctrlKey || event.altKey) return;
-      const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-      if (step && versions.length > 1) {
+      const by = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+      if (by && versions.length > 1) {
         event.preventDefault();
-        open(versions[(at + step + versions.length) % versions.length]!);
+        step(by);
       }
       if (event.key === 'Escape') setPinnedId(null);
     };
@@ -409,107 +478,75 @@ function PiecePage({
   });
   const family = index.families.find(f => f.id === visual.family);
   const editable = import.meta.env.DEV && canChangePrototype(proto, me);
-  // DialKit's build lists the views that use it; null while DialKit is off.
+  // DialKit's build lists the views that use it; Tune shows only for a version that has dials.
   const dials = contribution<{ views: string[] }>(manifest, 'dialkit');
-  const tunable = dials ? dials.views.includes(`src/visuals/${project.id}/${current.path}`) : null;
+  const tunable = Boolean(editable && dials?.views.includes(`src/visuals/${project.id}/${current.path}`));
   const comparing = Boolean(pinned && pinned.studioId !== current.studioId);
   const shown = comparing ? [pinned!, current] : [current];
-  const pad = 32;
+  // Room for the ← → buttons beside the visual.
+  const padX = versions.length > 1 ? 52 : 24;
+  const padY = 24;
   const gap = 24;
   const cell = {
-    width: (size.width - pad * 2 - gap * (shown.length - 1)) / shown.length,
-    height: size.height - pad - 28,
+    width: (size.width - padX * 2 - gap * (shown.length - 1)) / shown.length,
+    height: size.height - padY * 2 - (comparing ? 24 : 0),
   };
-  const step = (by: number) => open(versions[(at + by + versions.length) % versions.length]!);
-  const hint = pinned
-    ? comparing
-      ? 'Pick another version to compare, or press Esc'
-      : 'Pick a version to compare'
-    : versions.length > 1
-      ? '← → to step through versions'
-      : '';
   return (
-    <main className='flex min-w-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden'>
-      <div className='flex min-w-0 shrink-0 flex-col lg:min-h-0 lg:flex-1 lg:shrink'>
-        <header className='flex items-start justify-between gap-3 px-5 pt-5'>
-          <div className='min-w-0'>
-            <h1 className='truncate text-lg font-semibold tracking-tight text-foreground'>{visual.title}</h1>
-            <p className='mt-0.5 truncate text-sm text-muted-foreground'>
-              {[project.title, family?.label, `${versions.length} ${versions.length === 1 ? 'version' : 'versions'}`]
-                .filter(Boolean)
-                .join(' · ')}
-            </p>
-          </div>
-          <div className='flex items-center gap-1.5'>
-            {versions.length > 1 && (
-              <Button
-                variant={pinned ? 'secondary' : 'outline'}
-                size='sm'
-                aria-pressed={Boolean(pinned)}
-                onClick={() => setPinnedId(pinned ? null : current.studioId)}
-              >
-                {pinned ? 'Done comparing' : 'Compare'}
-              </Button>
-            )}
-            <Button
-              variant='ghost'
-              size='icon-sm'
-              aria-label={panel ? 'Hide details' : 'Show details'}
-              title={panel ? 'Hide details' : 'Show details'}
-              aria-pressed={panel}
-              onClick={togglePanel}
-            >
-              <HugeiconsIcon icon={panel ? PanelRightCloseIcon : PanelRightOpenIcon} />
-            </Button>
-          </div>
-        </header>
-        <div
-          ref={stage}
-          className='relative flex min-h-[360px] flex-1 items-center justify-center lg:min-h-0'
-          style={{ gap }}
-        >
-          {cell.width > 0 &&
-            cell.height > 0 &&
-            shown.map(version => (
-              <figure key={version.studioId} className='flex flex-col items-center gap-2'>
+    <main className='flex min-h-0 min-w-0 flex-1 flex-col'>
+      <header className='shrink-0 px-5 pt-4'>
+        <h1 className='truncate text-base font-semibold tracking-tight text-foreground'>{visual.title}</h1>
+        <p className='truncate text-xs text-muted-foreground'>
+          {[project.title, family?.label, FORMATS[current.format].label].filter(Boolean).join(' · ')}
+        </p>
+      </header>
+      <div ref={stage} className='relative flex min-h-[280px] flex-1 items-center justify-center' style={{ gap }}>
+        {cell.width > 0 &&
+          cell.height > 0 &&
+          shown.map(version => (
+            <figure key={version.studioId} className='flex flex-col items-center gap-2'>
+              {comparing && (
                 <figcaption className='text-xs text-muted-foreground tabular-nums'>
                   <span className='font-medium text-foreground'>{versionName(version)}</span>
-                  {comparing && version === pinned ? ' · pinned' : ''} · {LABEL[version.status]}
+                  {version === pinned ? ' · pinned' : ''}
                 </figcaption>
-                <Fitted visual={visual} version={version} proto={proto} box={cell} still={false} />
-              </figure>
-            ))}
-          {versions.length > 1 && !comparing && (
-            <>
-              <button
-                type='button'
-                aria-label='Previous version'
-                onClick={() => step(-1)}
-                className='absolute top-1/2 left-3 grid size-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
-              >
-                <HugeiconsIcon icon={ArrowLeft01Icon} size={16} />
-              </button>
-              <button
-                type='button'
-                aria-label='Next version'
-                onClick={() => step(1)}
-                className='absolute top-1/2 right-3 grid size-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
-              >
-                <HugeiconsIcon icon={ArrowRight01Icon} size={16} />
-              </button>
-            </>
-          )}
-        </div>
-        <Strip
-          visual={visual}
-          proto={proto}
-          current={current}
-          pinned={comparing ? pinned : undefined}
-          hint={hint}
-          onPick={open}
-        />
+              )}
+              <Fitted visual={visual} version={version} proto={proto} box={cell} still={false} />
+            </figure>
+          ))}
+        {versions.length > 1 && !comparing && (
+          <>
+            <button
+              type='button'
+              aria-label='Previous version'
+              onClick={() => step(-1)}
+              className='absolute top-1/2 left-2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
+            >
+              <HugeiconsIcon icon={ArrowLeft01Icon} size={16} />
+            </button>
+            <button
+              type='button'
+              aria-label='Next version'
+              onClick={() => step(1)}
+              className='absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-colors outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring'
+            >
+              <HugeiconsIcon icon={ArrowRight01Icon} size={16} />
+            </button>
+          </>
+        )}
       </div>
-      {panel && <Decision project={project} visual={visual} version={current} proto={proto} editable={editable} tunable={tunable} />}
+      <Versions
+        project={project}
+        visual={visual}
+        proto={proto}
+        current={current}
+        pinned={pinned}
+        comparing={comparing}
+        editable={editable}
+        tunable={tunable}
+        onPick={open}
+        onCompare={() => setPinnedId(pinned ? null : current.studioId)}
+        onTune={() => void navigate({ to: versionHref(visual, current) as never, search: { mode: 'viewer' } as never })}
+      />
     </main>
   );
 }

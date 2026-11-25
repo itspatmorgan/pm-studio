@@ -272,6 +272,8 @@ export type FileTreeContext = { proto: Prototype; manifest: Manifest };
 export type FileTreePolicy = {
   scope: 'prototype' | 'systemContent';
   noun: 'artifacts' | 'files';
+  // The list's heading, when it names what a section's items hold better than "Artifacts", such as a visual's pieces.
+  heading?: string;
   reorder: boolean;
   canChange(proto: Prototype, actor: string | null): boolean;
   newOptions(folder: string, context: { live: boolean; editable: boolean }): NewFileOption[];
@@ -992,7 +994,7 @@ export default function FileTree({
           </button>
         ) : (
           <p className='min-w-0 flex-1 truncate text-[12px] font-semibold leading-none'>
-            {showAll || policy.noun === 'files' ? 'Files' : 'Artifacts'}
+            {showAll || policy.noun === 'files' ? 'Files' : (policy.heading ?? 'Artifacts')}
           </p>
         )}
         {/* Shown while the pointer is over the list or focus is in it, so the heading stays quiet. */}
