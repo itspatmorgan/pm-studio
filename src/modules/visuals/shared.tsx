@@ -4,12 +4,18 @@ import { Link } from '@tanstack/react-router';
 import { ArtifactHost } from '#studio/ui';
 import { allPrototypes, contribution, withItems, type ArtifactContext, type Manifest } from '#studio/data';
 import { FORMATS } from './lib/formats.ts';
-import type { VisualEntry, VisualsContribution } from './visuals.ts';
+import type { VisualEntry, VisualVersion, VisualsContribution } from './visuals.ts';
 
 export const data = (manifest: Manifest) => contribution<VisualsContribution>(manifest, 'visuals');
-export const sizeOf = (visual: VisualEntry) => FORMATS[visual.selected!.format];
-// The selected version's address in the app: /visuals/<id>/iterations/v01.
-export const versionHref = (visual: VisualEntry) => `/visuals/${visual.id}/${visual.selected!.path.replace(/\.tsx$/, '')}`;
+// The version that stands for a visual: its selected one, or while none is, its newest.
+export const leadOf = (visual: VisualEntry): VisualVersion => visual.selected ?? visual.versions.at(-1)!;
+export const sizeOf = (visual: VisualEntry, version: VisualVersion = leadOf(visual)) => FORMATS[version.format];
+// A visual's page (/visuals/<id>, its versions), and one version's address in it (/visuals/<id>/iterations/v01).
+export const visualHref = (visual: Pick<VisualEntry, 'id'>) => `/visuals/${visual.id}`;
+export const versionHref = (visual: VisualEntry, version: VisualVersion = leadOf(visual)) =>
+  `/visuals/${visual.id}/${version.path.replace(/\.tsx$/, '')}`;
+// A version's name: v01 for iterations/v01.tsx.
+export const versionName = (version: VisualVersion) => version.path.split('/').at(-1)!.replace(/\.tsx$/, '');
 
 // Each visual's selected version, as the origin its preview resolves from.
 export function useOrigins(manifest: Manifest, visuals: VisualEntry[]) {
@@ -19,9 +25,9 @@ export function useOrigins(manifest: Manifest, visuals: VisualEntry[]) {
     const items = allPrototypes(manifest).filter(p => p.contributorKey === 'visuals');
     for (const visual of visuals) {
       const proto = items.find(p => p.id === visual.id);
-      if (!proto || !visual.selected) continue;
+      if (!proto || !visual.versions.length) continue;
       void withItems(proto).then(loaded => {
-        const item = loaded.artifacts.find(a => a.studioId === visual.selected!.studioId);
+        const item = loaded.artifacts.find(a => a.studioId === leadOf(visual).studioId);
         if (live && item) setOrigins(current => ({ ...current, [visual.id]: { proto: loaded, item } }));
       });
     }
@@ -47,31 +53,48 @@ export function useSize<T extends HTMLElement>() {
   return [ref, size] as const;
 }
 
-// Whether an element is near the screen, so a long page mounts only the live previews someone can see.
-export function useNear<T extends HTMLElement>(ref: React.RefObject<T | null>) {
+// Whether an element is near the screen, so a long page mounts only the live previews someone can see. With `release`,
+// it lets go again once the element is well off screen, so a long index keeps only a screenful or two alive at once.
+export function useNear<T extends HTMLElement>(ref: React.RefObject<T | null>, { release = false } = {}) {
   const [near, setNear] = useState(false);
   useEffect(() => {
     const el = ref.current;
-    if (!el || near) return;
-    const observer = new IntersectionObserver(([entry]) => entry?.isIntersecting && setNear(true), { rootMargin: '400px' });
+    if (!el || (near && !release)) return;
+    const observer = new IntersectionObserver(([entry]) => entry && setNear(near => (release ? entry.isIntersecting : near || entry.isIntersecting)), {
+      rootMargin: release ? '200px' : '400px',
+    });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [ref, near]);
+  }, [ref, near, release]);
   return near;
 }
 
-// A visual drawn live: its selected version laid out at the format's width and scaled to the box.
-export function Live({ visual, origin, width, height, interactive }: { visual: VisualEntry; origin?: ArtifactContext; width: number; height: number; interactive?: boolean }) {
+// A visual drawn live: one version (its lead by default) laid out at its format's width and scaled to the box.
+export function Live({
+  visual,
+  version = leadOf(visual),
+  origin,
+  width,
+  height,
+  interactive,
+}: {
+  visual: VisualEntry;
+  version?: VisualVersion;
+  origin?: ArtifactContext;
+  width: number;
+  height: number;
+  interactive?: boolean;
+}) {
   if (!origin || !width) return <div className='h-full w-full bg-muted/50' />;
   return (
     <ArtifactHost
-      request={{ reference: visual.selected!.path.split('/').at(-1)!, origin, surface: 'visuals/board' }}
+      request={{ reference: version.path.split('/').at(-1)!, origin, surface: 'visuals/board' }}
       width={width}
       height={height}
-      viewport={sizeOf(visual).width}
+      viewport={sizeOf(visual, version).width}
       chrome='bare'
       interaction={interactive ? 'interactive' : 'inert'}
-      label={visual.title}
+      label={`${visual.title}, ${versionName(version)}`}
       className='h-full w-full'
     />
   );
@@ -97,7 +120,7 @@ export function Go({ href, className, children }: { href: string; className: str
 
 // The same list while its ids are the same, so effects keyed on it don't rerun on every render.
 export function useStable(visuals: VisualEntry[]) {
-  const key = visuals.map(v => `${v.id}:${v.selected?.studioId}`).join(',');
+  const key = visuals.map(v => `${v.id}:${leadOf(v).studioId}`).join(',');
   const ref = useRef({ key, visuals });
   if (ref.current.key !== key) ref.current = { key, visuals };
   return ref.current.visuals;

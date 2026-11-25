@@ -267,6 +267,8 @@ type TreeNavigation = {
   onFoldersExpanded: (open: boolean) => void;
 };
 export type NewFileOption = { target: string; label: string; icon: typeof File01Icon };
+// What a policy's arrange and badge see: the open prototype and the manifest, which holds what modules contribute.
+export type FileTreeContext = { proto: Prototype; manifest: Manifest };
 export type FileTreePolicy = {
   scope: 'prototype' | 'systemContent';
   noun: 'artifacts' | 'files';
@@ -280,6 +282,11 @@ export type FileTreePolicy = {
   itemForNode?(node: FileNode, items: Map<string, Artifact>): Artifact | undefined;
   bundleItem?(node: FileNode, items: Map<string, Artifact>): Artifact | undefined;
   creationTarget?: string;
+  // The order of the rows, on top of the prototype's order: a section can put some first, such as a visual's selected
+  // version. It gets every level of the tree and returns it rearranged, never with rows added or removed.
+  arrange?(nodes: FileNode[], context: FileTreeContext): FileNode[];
+  // A short mark after an item's name, such as a version's status. Return nothing for an item without one.
+  badge?(item: Artifact, context: FileTreeContext): ReactNode;
   // Actions other modules add to an item's menu; the prototype navigation passes ModuleApp.artifactActions.
   artifactActions?(context: ArtifactActionContext, manifest: Manifest): readonly ArtifactAction[];
   CreationDialog?: ComponentType<{
@@ -372,7 +379,8 @@ export default function FileTree({
   });
   // Switched in the header's "…" menu, and remembered for every prototype.
   const [showAll] = useShowAllFiles();
-  const nodes = !files ? itemsAsNodes(proto) : showAll ? files : visibleNodes(files, items);
+  const listed = !files ? itemsAsNodes(proto) : showAll ? files : visibleNodes(files, items);
+  const nodes = policy.arrange ? policy.arrange(listed, { proto, manifest }) : listed;
   const [filterOpen, setFilterOpen] = useState(false);
   const [filter, setFilter] = useState('');
   const savedFolders = navigation ? folderState.get(proto.id) : undefined;
@@ -908,6 +916,7 @@ export default function FileTree({
                   />
                 )}
                 {label}
+                {policy.badge?.(item, { proto, manifest })}
               </Link>,
             )}
           </DragRow>

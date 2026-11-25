@@ -5,6 +5,7 @@ import { findArtifact, firstArtifact } from '@/platform/app/data/manifest';
 import type { Prototype } from '@/platform/app/data/types';
 import PrototypeNav from '@/platform/modules/prototypes/viewer/PrototypeNav';
 import { isStandalone } from '@/platform/app/data/modules';
+import { sectionApp } from '@/platform/app/modules';
 
 export default function PrototypeLayout({ proto }: { proto: Prototype }) {
   const params = useParams({ strict: false });
@@ -12,11 +13,15 @@ export default function PrototypeLayout({ proto }: { proto: Prototype }) {
     select: state => (state.matches.at(-1)?.loaderData as { artifactPath?: string } | undefined)?.artifactPath,
   });
   // The index keeps the currently displayed artifact during an order update.
+  // A section with a landing (ModuleApp.sectionItem) shows it at the item's own address, with nothing in it open yet.
+  const landing = Boolean(sectionApp(proto.contributorKey)?.sectionItem?.landing);
   const current = params.artifact
     ? proto.artifacts.find(item => item.studioId === params.artifact)
     : params._splat
       ? findArtifact(proto, params._splat)
-      : (proto.artifacts.find(item => item.path === openPath) ?? firstArtifact(proto));
+      : landing
+        ? undefined
+        : (proto.artifacts.find(item => item.path === openPath) ?? firstArtifact(proto));
   // A standalone section item on the deployed site is just the open item, filling the window (App.tsx hides the rail too).
   if (!import.meta.env.DEV && isStandalone(proto.contributorKey))
     return (

@@ -8,6 +8,7 @@ import type { AnyRoute, NavigateOptions } from '@tanstack/react-router';
 import { compatible, type ModuleSpec } from '@/platform/core/modules';
 import type { Artifact, Manifest, Prototype, PrototypeInfo } from '@/platform/app/data/types';
 import type { ArtifactAction, ArtifactActionContext } from '@/platform/app/data/fileTypeModule';
+import type { FileTreePolicy } from '@/platform/app/files/FileTree';
 import { MODULES } from '@/platform/app/data/modules';
 import { isEnabled } from '@/platform/app/data/config';
 
@@ -68,6 +69,14 @@ export type ModuleApp = {
   palette?: ComponentType<PaletteContext>;
   // Where its palette groups sit among the other modules' groups, low first, when that differs from `order`.
   paletteOrder?: number;
+  // How the items of its section open, for a module whose items need more than a prototype's viewer. Both are optional:
+  // `policy` adjusts the item's file tree (it gets the prototype policy and returns the section's, to add badges, an
+  // order, or fixed folders), and `landing` is what an item's own address (/<section>/<id>) shows before anything in it
+  // is opened, in place of its first item. The item's navigation stays beside it either way.
+  sectionItem?: {
+    policy?: (base: FileTreePolicy) => FileTreePolicy;
+    landing?: ComponentType<{ proto: Prototype }>;
+  };
   /** @stable Where the shared Documentation address (/documentation) opens, instead of the Context & Skills browser. Receives the manifest; return undefined to leave the default. */
   landing?: (manifest: Manifest) => string | undefined;
 };
@@ -96,6 +105,10 @@ export const homeApps = (local: boolean, slot: 'overview' | 'homeBoard' = 'overv
         (a.app.homeOrder?.[local ? 'local' : 'deployed'] ?? a.app.order) -
         (b.app.homeOrder?.[local ? 'local' : 'deployed'] ?? b.app.order),
     );
+
+// The app of the module that owns a section, by its key (the first part of an item's address), if it has one.
+export const sectionApp = (key: string): ModuleApp | undefined =>
+  moduleApps.find(({ spec }) => spec.section?.key === key)?.app;
 
 // The address a module's section opens at, like "/examples".
 export const sectionPath = (spec: ModuleSpec) => `/${spec.section!.key}`;

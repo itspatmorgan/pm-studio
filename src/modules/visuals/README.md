@@ -2,7 +2,12 @@
 
 Brand and creative visuals in this studio, built here first and shaped to move upstream into Design Studio. The full
 direction is the Visuals brief (Notion TASK-18). This build has the section, versions, families, collections, the index,
-and Snapshots (the front page board). The media store, export and the iteration screens come later.
+a visual's page of versions, its navigation, and Snapshots (the front page board). The media store, compare, select,
+export and posters come later.
+
+The interface grows out of Prototypes' rather than standing apart: the index is built like the Prototypes gallery, and a
+visual opens in the prototype viewer, with Visuals' own file tree policy and a page of its versions where a prototype
+would open its first view.
 
 ## A visual on disk
 
@@ -48,8 +53,17 @@ No new file types: every version is a view (`.tsx`), as the brief decides.
 - `build.ts` validates every visual (family, collections, each version's format, one selection, records that match
   files) and the Snapshots list, and puts the index in the manifest as `contributions.visuals`. The published manifest
   carries it, so itspatmorgan.com reads the same list.
-- `app.tsx` adds Visuals to the rail, the `/visuals` route and the front page board. `VisualsIndex.tsx` is the index
-  (live tiles by collection, filtered with `?collection=`); `Board.tsx` is Snapshots on the front page: justified rows
+- `app.tsx` adds Visuals to the rail, the `/visuals` route, a visual's page and navigation, and the front page board.
+- `VisualsIndex.tsx` is the index, on the Prototypes gallery's frame: search (`?q=`), filters for collection, family and
+  status (`?collection=`, `?family=`, `?status=selected|open`), grouping by collection (`?group=collection`), and the
+  shared cards or list switch. Each card shows the visual on a 16:10 mat so every format fits one grid. Until the
+  render service draws posters, the picture is the visual drawn live, mounted only while its card is near the screen
+  and let go once it is well off it, so a long index keeps about a screenful alive.
+- `VisualPage.tsx` is what `/visuals/<id>` shows: every version drawn live at its format, the selected one first and
+  rejected ones last, with its status and note. Opening a version shows it in the viewer.
+- `nav.tsx` is the visual's file tree policy: `iterations/` and `exports/` are fixed and follow the working files,
+  each version shows its status, and versions sort as on the page.
+- `Board.tsx` is Snapshots on the front page: justified rows
   where each tile grows by its format's aspect ratio, a spotlight on hover with the name following the pointer, and a
   peek that grows out of its tile once the live view has drawn; `shared.tsx` holds the live preview and origins.
 - `snapshots.ts` is the board: which visuals lead, in order, with each one's peek (line, title, summary, links).
@@ -70,4 +84,11 @@ These platform changes were made in this studio for Visuals and Snapshots, and a
 - **A front page board slot.** A module app can declare `homeBoard`, which takes over the front page (`src/platform/app/modules.ts`, `src/platform/app/pages/home/Home.tsx`): the greeting and search become one row above the board, and the panel's lists stay in the ⌘K palette.
 - **Section items are prototypes when hosted.** `src/platform/app/artifacts/resolveArtifact.ts` decided a hosted artifact's scope with `isSectionKey`, so a view in a module's own section of prototype-shaped folders counted as system content and could not be embedded. It now uses `SYSTEM_CONTENT_KEY`, as the item page and the source editor do.
 - **Not yet: `pnpm studio identify` for section items.** It accepts only `src/prototypes/<person>/<id>`, so visual folders have no folder-level `studioId` yet; they are addressed by folder name.
+- **A module's own item page and tree policy.** A module app can declare `sectionItem: { policy, landing }`
+  (`src/platform/app/modules.ts`). `PrototypeNav` uses `policy(base)` for that section's items, and the section item
+  route shows `landing` at the item's own address instead of its first item (`src/platform/app/router.tsx`,
+  `PrototypeLayout.tsx`). Prototypes could use the same slot for a cover page.
+- **Tree badges and order.** `FileTreePolicy` takes `arrange(nodes, context)` and `badge(item, context)`
+  (`src/platform/app/files/FileTree.tsx`, `FileTreeContext` in `#studio/ui`), the brief's "item badges" and "policy
+  ordering" hooks.
 - **`withItems` in `#studio/data`.** Exported so a module can build an artifact origin for a view it finds through `allPrototypes`.

@@ -40,7 +40,7 @@ import type { Artifact, Manifest, Prototype } from '@/platform/app/data/types';
 import { createRefreshQueue } from '@/platform/app/data/refreshQueue';
 import { TAB_ID } from '@/platform/app/data/files';
 import { onMutation } from '@/platform/app/data/mutations';
-import { moduleApps } from '@/platform/app/modules';
+import { moduleApps, sectionApp } from '@/platform/app/modules';
 import { downloaded } from '@/platform/app/data/downloaded';
 import { APP_NAME } from '@/platform/app/data/config';
 import { loadReference } from '@/platform/app/docs/loadReference';
@@ -427,7 +427,9 @@ const loadProto = async ({ contributor, prototype }: { contributor?: string; pro
 const searchOf = (search: Record<string, unknown>): ItemSearch => ({
   mode: search.mode === 'source' ? 'source' : undefined,
 });
-const titleOf = ({ loaderData }: { loaderData?: ItemData }) => ({ meta: [{ title: loaderData?.title ?? APP_NAME }] });
+const titleOf = ({ loaderData }: { loaderData?: { title: string } }) => ({
+  meta: [{ title: loaderData?.title ?? APP_NAME }],
+});
 
 // A prototype's, with its navigation around whichever item is open.
 const prototypeRoute = createRoute({
@@ -484,14 +486,27 @@ const sectionItemRoute = createRoute({
   component: () => <PrototypeLayout proto={sectionItemRoute.useLoaderData().proto} />,
   notFoundComponent: NotFound,
 });
+// A section whose module has a landing for its items (ModuleApp.sectionItem) shows that here instead of the first item.
+type LandingData = { landing: true; title: string };
 const sectionItemIndexRoute = createRoute({
   getParentRoute: () => sectionItemRoute,
   path: '/',
   loaderDeps: ({ search }) => ({ mode: search.mode }),
-  loader: ({ params, deps, cause }): Promise<ItemData> =>
-    itemLoader(params, deps.mode, retainedIndexPath(sectionItemIndexRoute.id, cause)),
+  loader: async ({ params, deps, cause }): Promise<ItemData | LandingData> => {
+    if (sectionApp(params.contributor)?.sectionItem?.landing) {
+      const { proto } = await loadProto(params);
+      return { landing: true, title: [proto.title, APP_NAME].join(' — ') };
+    }
+    return itemLoader(params, deps.mode, retainedIndexPath(sectionItemIndexRoute.id, cause));
+  },
   head: titleOf,
-  component: () => <ItemPage data={sectionItemIndexRoute.useLoaderData()} />,
+  component: function SectionItemIndex() {
+    const data = sectionItemIndexRoute.useLoaderData();
+    const { proto } = sectionItemRoute.useLoaderData();
+    const Landing = sectionApp(proto.contributorKey)?.sectionItem?.landing;
+    if ('landing' in data) return Landing ? <Landing proto={proto} /> : null;
+    return <ItemPage data={data} />;
+  },
   notFoundComponent: NotFound,
 });
 const sectionItemSplatRoute = createRoute({

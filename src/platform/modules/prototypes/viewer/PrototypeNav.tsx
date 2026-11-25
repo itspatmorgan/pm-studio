@@ -5,17 +5,24 @@ import type { Artifact, Prototype } from '@/platform/app/data/types';
 import { SectionNav } from '@/platform/app/shell/nav';
 import PrototypeHeader from '@/platform/modules/prototypes/viewer/PrototypeHeader';
 import { FileTree } from '#studio/ui';
-import { contributedArtifactActions } from '@/platform/app/modules';
+import type { FileTreePolicy } from '#studio/ui';
+import { contributedArtifactActions, sectionApp } from '@/platform/app/modules';
 import { prototypeFileTreePolicy } from './fileTreePolicy';
 
 // Its files' menus also carry what other modules add to them (ModuleApp.artifactActions).
-const policy = { ...prototypeFileTreePolicy, artifactActions: contributedArtifactActions };
+const base = { ...prototypeFileTreePolicy, artifactActions: contributedArtifactActions };
+// A section's items can use their module's policy instead (ModuleApp.sectionItem), made once per section.
+const policies = new Map<string, FileTreePolicy>();
+const policyFor = (key: string) => {
+  if (!policies.has(key)) policies.set(key, sectionApp(key)?.sectionItem?.policy?.(base) ?? base);
+  return policies.get(key)!;
+};
 
 export default function PrototypeNav({ proto, current }: { proto: Prototype; current: Artifact | undefined }) {
   return (
     <SectionNav label='Prototype navigation'>
       <PrototypeHeader proto={proto} />
-      <FileTree policy={policy} proto={proto} current={current} />
+      <FileTree policy={policyFor(proto.contributorKey)} proto={proto} current={current} />
     </SectionNav>
   );
 }
