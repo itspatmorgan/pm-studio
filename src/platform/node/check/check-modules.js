@@ -25,7 +25,7 @@ import { dependencyResolver, importsOf, sourceFiles } from '../lib/imports.js';
 // Usage: node src/platform/node/check/check-modules.js
 import fs from 'node:fs';
 import { themeUsageProblems } from '../lib/theme-usage.js';
-import { inventories } from '../build/vite-css-plugin.js';
+import { inventories, themeOf } from '../build/vite-css-plugin.js';
 import { TEAM_MODULES_ROOT, TEAM_SYSTEMS_ROOT, moduleIdOfPath } from '../../core/roots.ts';
 import { tailwindThemeProblems } from '../lib/tailwind-theme.js';
 import path from 'node:path';
@@ -89,7 +89,8 @@ for (const id of SYSTEM_IDS) {
 
 for (const [id, spec] of Object.entries(SYSTEM_SPECS)) {
   const file = path.join(ROOT, spec.dir, 'styles/theme.css');
-  if (fs.existsSync(file)) problems.push(...tailwindThemeProblems(fs.readFileSync(file, 'utf8'), { file, ...spec }));
+  // Read the theme as Studio uses it, so tokens a fitted system imports (cssFitting 'fit') count as declared.
+  if (fs.existsSync(file)) problems.push(...tailwindThemeProblems(themeOf(spec).tokens, { file, ...spec }));
 }
 
 const themeSystems = inventories();
