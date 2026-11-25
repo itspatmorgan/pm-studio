@@ -2,7 +2,8 @@
 // (its `overview`, src/platform/app/modules.ts). The panel is narrow and centred, so it reads as a welcome rather
 // than a page to fill, and stays comfortable in the narrow window an agent's harness gives the app. The modules decide
 // what is worth showing and in what order, so a module added to the app can put something here with no change to this file.
-// A module whose contribution is visual (its `homeBoard`) gets the full width below the panel instead.
+// A module whose contribution is visual (its `homeBoard`) takes the page instead: the greeting and search become one row
+// above it, and the panel's lists stay in the palette.
 //
 // While you run the app locally it greets you and puts your own work first. The deployed site doesn't know who is
 // looking, so it names the app, adds the tagline from studio.config.json, and puts what colleagues come for first.
@@ -27,37 +28,56 @@ export default function Home() {
   const first = name?.split(' ')[0];
   const heading = name === undefined ? '\u00a0' : first ? `Welcome back, ${first}` : APP_NAME;
   const boards = homeApps(local, 'homeBoard');
-  return (
-    <div className='w-full'>
-      {/* With a board below, the panel sits higher so the board starts within the first screen. */}
-      <main className={cn('mx-auto w-full max-w-xl px-4 pb-10', boards.length ? 'pt-[7vh]' : 'pt-[12vh]')}>
-        <header className='mb-6'>
-          <h1 className='text-center text-2xl font-semibold tracking-tight text-foreground'>{heading}</h1>
-          {!local && TAGLINE && <p className='mt-1.5 text-center text-sm text-muted-foreground'>{TAGLINE}</p>}
-        </header>
-        <Card className='gap-0 py-0 pb-1'>
-          {/* The panel's first row is its search: one piece of the panel, flush with its edges and divided from the sections by a line,
-            not a field set inside it. It opens the ⌘K palette, the search every page has, put where a first-time visitor will see it.
-            Custom on purpose: the stock Button and Kbd looked like a control placed in the panel. */}
-          <button
-            type='button'
-            onClick={openPalette}
-            className='flex h-11 w-full items-center gap-2.5 border-b border-border px-4 text-left text-sm text-muted-foreground transition-colors outline-none hover:bg-muted/50 focus-visible:bg-muted/50'
-          >
-            <HugeiconsIcon icon={Search01Icon} size={16} />
-            <span className='flex-1'>Search the studio</span>
-            <kbd className='rounded border border-border px-1.5 py-0.5 font-sans text-[11px] leading-none'>⌘K</kbd>
-          </button>
-          {/* A little more space under the search than between sections, so the top of the list is as far from the line as the bottom is from the edge. */}
-          <div className='pt-1.5'>
-            {homeApps(local, 'overview').map(
-              ({ spec, app }) => app.overview && <app.overview key={spec.id} manifest={manifest} />,
-            )}
+  // The search opens the ⌘K palette, the search every page has, put where a first-time visitor will see it.
+  // Custom on purpose: the stock Button and Kbd looked like a control placed in the panel.
+  const search = (className: string) => (
+    <button
+      type='button'
+      onClick={openPalette}
+      className={cn(
+        'flex h-11 w-full items-center gap-2.5 px-4 text-left text-sm text-muted-foreground transition-colors outline-none hover:bg-muted/50 focus-visible:bg-muted/50',
+        className,
+      )}
+    >
+      <HugeiconsIcon icon={Search01Icon} size={16} />
+      <span className='flex-1'>Search the studio</span>
+      <kbd className='rounded border border-border px-1.5 py-0.5 font-sans text-[11px] leading-none'>⌘K</kbd>
+    </button>
+  );
+  // With a board, the board is the page: the greeting and the search share one quiet row above it, aligned to its edges,
+  // and the lists the panel would show stay one keystroke away in the palette.
+  if (boards.length)
+    return (
+      <div className='w-full'>
+        <header className='mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-5 pt-10 pb-8 sm:flex-row sm:items-end sm:justify-between sm:px-7 sm:pt-16 sm:pb-10'>
+          <div>
+            <h1 className='text-[28px] leading-tight font-semibold tracking-tight text-foreground sm:text-[32px]'>
+              {heading}
+            </h1>
+            {!local && TAGLINE && <p className='mt-1.5 text-sm text-muted-foreground'>{TAGLINE}</p>}
           </div>
-        </Card>
-      </main>
-      {/* Boards fill the width under the panel: the panel stays first and narrow, so the search is still where work starts. */}
-      {boards.map(({ spec, app }) => app.homeBoard && <app.homeBoard key={spec.id} manifest={manifest} />)}
-    </div>
+          {search('rounded-full bg-card ring-1 ring-border sm:w-[340px]')}
+        </header>
+        {boards.map(({ spec, app }) => app.homeBoard && <app.homeBoard key={spec.id} manifest={manifest} />)}
+      </div>
+    );
+  return (
+    <main className='mx-auto w-full max-w-xl px-4 pt-[12vh] pb-10'>
+      <header className='mb-6'>
+        <h1 className='text-center text-2xl font-semibold tracking-tight text-foreground'>{heading}</h1>
+        {!local && TAGLINE && <p className='mt-1.5 text-center text-sm text-muted-foreground'>{TAGLINE}</p>}
+      </header>
+      <Card className='gap-0 py-0 pb-1'>
+        {/* The panel's first row is its search: one piece of the panel, flush with its edges and divided from the sections by a line,
+            not a field set inside it. */}
+        {search('border-b border-border')}
+        {/* A little more space under the search than between sections, so the top of the list is as far from the line as the bottom is from the edge. */}
+        <div className='pt-1.5'>
+          {homeApps(local, 'overview').map(
+            ({ spec, app }) => app.overview && <app.overview key={spec.id} manifest={manifest} />,
+          )}
+        </div>
+      </Card>
+    </main>
   );
 }
