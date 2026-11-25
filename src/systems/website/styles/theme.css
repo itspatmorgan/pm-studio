@@ -2,6 +2,15 @@
    imports; Studio fits its :root and .dark rules to this theme (cssFitting: 'fit' in system.ts). The kit's components import
    their own stylesheets. Type, spacing and widths below are Tailwind's defaults, limited to the steps the site uses. */
 @import "@itspatmorgan/kit/tokens.css";
+/* Kit stylesheets the system's own components and the prototype's pages use directly, the same ones the site's pages
+   import. Kit components import their own stylesheets as well. */
+@import "@itspatmorgan/kit/case-study/case-study.css";
+@import "@itspatmorgan/kit/sublime/sublime.css";
+@import "@itspatmorgan/kit/query-builder/query-builder.css";
+@import "@itspatmorgan/kit/expansion/expansion.css";
+@import "@itspatmorgan/kit/design-studio/linework.css";
+@import "@itspatmorgan/kit/design-studio/studio-shapes.css";
+@import "@itspatmorgan/kit/studio-case/studio-case.css";
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
 /* Page styles the site writes in its .astro files, ported as written (styles/site/). */

@@ -1,14 +1,16 @@
-/* The Design Studio landing page, ported from the <style> block in itspatmorgan.com's src/pages/design-studio.astro. */
+/* The Design Studio landing page, ported from the <style> block in itspatmorgan.com's src/pages/design-studio.astro. On the site, Astro's
+   scoped styles outrank the kit's; here a rule that overrides a kit stylesheet names its base (.cs-hero.ds-hero), so it wins on
+   specificity whatever order the stylesheets load in. */
 
   .studio-page { container: studio-page / inline-size; }
   /* The landing page shares the case studies' slide rhythm and stages (case-study.css), inside the Showcase shell. */
   .ds-landing.cs-page { max-width: none; margin: 0; padding: 0; }
-  .ds-hero > h1 { max-width: none; font-size: clamp(40px, 5.6cqi, 68px); line-height: 1.02; }
-  .ds-hero > p { max-width: 34em; margin-top: 24px; }
-  .ds-actions { margin-top: 36px; }
-  .ds-actions a { height: 44px; padding: 0 20px; font-size: 15px; }
-  .ds-actions a [data-copy-face] { transition: opacity 160ms ease; }
-  .ds-hero > .ds-works { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 14px; max-width: none; margin-top: 24px; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
+  .cs-hero.ds-hero > h1 { max-width: none; font-size: clamp(40px, 5.6cqi, 68px); line-height: 1.02; }
+  .cs-hero.ds-hero > p { max-width: 34em; margin-top: 24px; }
+  .sc-next.ds-actions { margin-top: 36px; }
+  .sc-next.ds-actions a { height: 44px; padding: 0 20px; font-size: 15px; }
+  .sc-next.ds-actions a [data-copy-face] { transition: opacity 160ms ease; }
+  .cs-hero.ds-hero > .ds-works { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 14px; max-width: none; margin-top: 24px; font-size: 14px; line-height: 20px; color: var(--muted-foreground); }
   .ds-harness { display: inline-flex; align-items: center; gap: 6px; color: var(--foreground); }
   .ds-works .ds-logo { width: 16px; height: 16px; }
   .ds-hero-studio { margin-top: 56px; }
@@ -63,21 +65,21 @@
   @media (max-width: 860px) { .ds-start-grid { grid-template-columns: minmax(0, 1fr); max-width: 560px; gap: 12px; } }
   @media (max-width: 760px) { .ds-start-grid { margin-top: 28px; } }
   @media (max-width: 640px) {
-    .ds-actions { flex-wrap: nowrap; gap: 8px; }
-    .ds-actions a { height: 40px; padding: 0 14px; font-size: 14px; white-space: nowrap; }
+    .sc-next.ds-actions { flex-wrap: nowrap; gap: 8px; }
+    .sc-next.ds-actions a { height: 40px; padding: 0 14px; font-size: 14px; white-space: nowrap; }
     .ds-try { display: none; }
     .ds-try-short { display: inline; }
-    .ds-hero > h1 { font-size: clamp(32px, 9.4vw, 40px); }
-    .ds-hero > p { margin-top: 20px; }
-    .ds-actions { margin-top: 32px; }
-    .ds-hero > .ds-works { gap: 6px 12px; margin-top: 28px; font-size: 13px; }
+    .cs-hero.ds-hero > h1 { font-size: clamp(32px, 9.4vw, 40px); }
+    .cs-hero.ds-hero > p { margin-top: 20px; }
+    .sc-next.ds-actions { margin-top: 32px; }
+    .cs-hero.ds-hero > .ds-works { gap: 6px 12px; margin-top: 28px; font-size: 13px; }
     .ds-hero-studio { margin-top: 56px; }
   }
   /* Small phones (iPhone SE and narrower): the headline keeps two lines and the two buttons stack at full width inside the gutter. */
   @media (max-width: 374px) {
-    .ds-hero > h1 { font-size: 28px; }
-    .ds-actions { flex-direction: column; align-items: stretch; width: 100%; }
-    .ds-actions a { justify-content: center; }
+    .cs-hero.ds-hero > h1 { font-size: 28px; }
+    .sc-next.ds-actions { flex-direction: column; align-items: stretch; width: 100%; }
+    .sc-next.ds-actions a { justify-content: center; }
   }
   .studio-text-link { display: inline-flex; min-height: 2.75rem; align-items: center; gap: 0.5rem; font-size: 0.875rem; font-weight: 500; text-decoration: underline; text-underline-offset: 4px; transition: color 150ms; }
   .studio-text-link:hover { color: var(--accent); }

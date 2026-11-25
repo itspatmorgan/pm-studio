@@ -26,7 +26,7 @@ Website began as Design Studio's Marketing starter and was renamed and rebuilt f
 
 ## Shared kit
 
-The scene player and stages (`case-study`), the case study and Design Studio demos (`sublime`, `query-builder`, `expansion`, `design-studio`, `studio-case`), and the theme hooks are not copies: they come from `@itspatmorgan/kit`, a package in the site's repository (`packages/kit`) that the site imports too. The system depends on it at a pinned commit in `package.json`; each kit component imports its own stylesheets, as on the site, and Studio fits them to the Website theme when it bundles them. To take a site change, move the pin to the new commit and run `pnpm install`.
+The scene player and stages (`case-study`), the case study and Design Studio demos (`sublime`, `query-builder`, `expansion`, `design-studio`, `studio-case`), and the theme hooks are not copies: they come from `@itspatmorgan/kit`, a package in the site's repository (`packages/kit`) that the site imports too. The system depends on it at a pinned commit in `package.json`; each kit component imports its own stylesheets, as on the site, and Studio fits them to the Website theme when it bundles them. The system's own components and the prototype's pages use some kit classes directly, so `styles/theme.css` imports those stylesheets too, the same ones the site's pages import. To take a site change, move the pin to the new commit and run `pnpm install`.
 
 ## Adaptations
 
@@ -35,7 +35,7 @@ The scene player and stages (`case-study`), the case study and Design Studio dem
 - Logo styles live in `styles/theme.css` under the theme class, and its keyframes are prefixed `website-theme-`. They predate fitting; new ports can be written as the site writes them.
 - The site's button drops its `dark:` overrides here, because Studio's dark tokens already supply those values.
 
-- Page styles the site writes in `<style>` blocks became files under `styles/site/`, imported by `styles/theme.css` as written. Studio fits them to the theme like any other imported CSS.
+- Page styles the site writes in `<style>` blocks became files under `styles/site/`, imported by `styles/theme.css` as written. Studio fits them to the theme like any other imported CSS. One change: on the site, Astro's scoped styles outrank the kit's, so a rule here that overrides a kit stylesheet names its base (`.cs-hero.ds-hero`, `.cs-stage.sc-lesson`) to win on specificity rather than on load order.
 - `system.ts` declares `origin: null`: credit comes from the libraries list instead. shadcn/ui is credited on Button, Badge, Tabs, and Tooltip, and itspatmorgan.com on everything ported from the site. Add a new component's slug to the right library's `components`.
 - Internal component files start with `_`, so the Systems pages list one documented entry per folder; each folder's `index.ts` is its public surface.
 - `useDark` follows the theme boundary's `data-color-mode`, not `.dark` on `<html>`. The generative art and Lab previews use it.

@@ -18,7 +18,7 @@
     .sc-press { grid-template-columns: minmax(0, 1fr); max-width: 560px; margin-top: 28px; gap: 12px; }
   }
 
-  .sc-lesson { margin-top: 48px; padding: clamp(56px, 8vw, 104px) clamp(20px, 5vw, 64px); }
+  .cs-stage.sc-lesson { margin-top: 48px; padding: clamp(56px, 8vw, 104px) clamp(20px, 5vw, 64px); }
   .sc-lesson ol { max-width: 680px; margin: 0 auto; padding: 0; list-style: none; text-align: left; }
   .sc-lesson li { position: relative; display: grid; grid-template-columns: 88px minmax(0, 1fr); column-gap: 56px; padding-bottom: 40px; }
   .sc-lesson li:last-child { padding-bottom: 0; }
