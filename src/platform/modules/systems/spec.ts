@@ -48,6 +48,10 @@ export type SystemSpec = {
   themeClass: string;
   // Select the declared utility contract, or own scoped CSS without Tailwind token requirements.
   styling: 'tailwind' | 'custom';
+  // Lab feature (pm-studio): 'fit' lets theme.css import plain production CSS (shadcn's :root and .dark variables, a
+  // package's own stylesheets) and has Studio scope it at build time (src/platform/node/lib/css-fit.js), reading tokens
+  // from what it imports. 'strict' loads theme.css as written, already scoped.
+  cssFitting: 'fit' | 'strict';
   colorModes: readonly ColorMode[];
   // The screen widths its designs are made for. The first is the default: a view placed on a canvas or in a
   // document is laid out at its width unless the canvas asks for another. How much height shows is the canvas's.
@@ -116,6 +120,10 @@ export function systemProblems(spec: unknown, folder: string, dir = `${TEAM_SYST
     );
   if (!['tailwind', 'custom'].includes(s.styling ?? ''))
     problems.push(`${where}: styling must be 'tailwind' or 'custom'.`);
+  if (!['fit', 'strict'].includes(s.cssFitting ?? ''))
+    problems.push(
+      `${where}: cssFitting must be 'fit' (Studio scopes imported production CSS) or 'strict' (theme.css is already scoped).`,
+    );
   if (!s.docs || !['warn', 'strict', 'off'].includes(s.docs))
     problems.push(`${where}: docs should be 'warn', 'strict', or 'off'.`);
   if (s.origin !== null && s.origin !== 'shadcn')

@@ -7,6 +7,7 @@ export default {
   label: '__LABEL__',
   themeClass: '__ID__-theme',
   styling: 'tailwind',
+  cssFitting: 'strict',
   colorModes: ['light', 'dark'],
   screens: [{ name: 'Desktop', width: 1440 }],
   docs: 'warn',

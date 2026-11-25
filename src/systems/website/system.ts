@@ -7,6 +7,7 @@ export default {
   label: "Website",
   themeClass: 'website-theme',
   styling: 'tailwind',
+  cssFitting: 'fit',
   colorModes: ['light', 'dark'],
   screens: [
     { name: 'Desktop', width: 1440 },
