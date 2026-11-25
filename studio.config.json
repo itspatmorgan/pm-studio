@@ -16,7 +16,8 @@
     "onboarding": true,
     "contributors": true,
     "dialkit": true,
-    "snapshots": true
+    "snapshots": true,
+    "visuals": true
   },
   "systems": [
     "website"

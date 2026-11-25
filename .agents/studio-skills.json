@@ -137,6 +137,14 @@
       "kind": "link",
       "hash": "bd6ea023e7ec6524fa7dbacaebaa986fba3493ecce4d0e1083ff4cc275a36a4a"
     },
+    ".agents/skills/studio-module-visuals-use-visuals/SKILL.md": {
+      "kind": "file",
+      "hash": "85dff0121582dd540d58083dd73dc9861a9b8332b36e8a4949646a2d1c0c7f2c"
+    },
+    ".claude/skills/studio-module-visuals-use-visuals": {
+      "kind": "link",
+      "hash": "555a0464ef642056e7630f9952f3fc9e88c5c0cea8e928bec345d47958063ee0"
+    },
     ".agents/skills/studio-system-website-sync-from-site/SKILL.md": {
       "kind": "file",
       "hash": "0e4a9a05502728ec29df949757422712843dde3befafbc5fc3c408c15d4d3b40"

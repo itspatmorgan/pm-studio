@@ -47,6 +47,7 @@ When the person asks to rename, move, duplicate, archive, restore, download, or 
 When the person asks to add, change, or re-record Snapshots, read [src/modules/snapshots/skills/use-snapshots/SKILL.md](src/modules/snapshots/skills/use-snapshots/SKILL.md).
 When the person asks to curate, assess, import, replace, or adapt a design system, read [src/platform/modules/systems/skills/setup-design-system/SKILL.md](src/platform/modules/systems/skills/setup-design-system/SKILL.md).
 When the person asks to import or document a system component, read [src/platform/modules/systems/skills/document-component/SKILL.md](src/platform/modules/systems/skills/document-component/SKILL.md).
+When the person asks to make a visual, add a format, or draw a view at a format, read [src/modules/visuals/skills/use-visuals/SKILL.md](src/modules/visuals/skills/use-visuals/SKILL.md).
 <!-- /studio:modules -->
 
 # Team guidance
