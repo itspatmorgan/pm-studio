@@ -60,7 +60,7 @@ test('overview discovery uses original owner READMEs and enabled module document
   );
   assert.ok(result);
   const patterns = JSON.parse(result.code.slice('const pages = import.meta.glob('.length, -1));
-    // Each enabled module's documents come from its own folder, whether the platform supplies it or the team added it.
+  // Each enabled module's documents come from its own folder, whether the platform supplies it or the team added it.
   assert.deepEqual(patterns, [
     '/platform/README.md',
     ...ENABLED_MODULES.map(m => `/${MODULE_DIRS[m.id].replace(/^src\//, '')}*.md`),
