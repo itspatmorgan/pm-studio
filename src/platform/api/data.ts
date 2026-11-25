@@ -44,6 +44,9 @@ export { loadManifest } from '../app/data/manifest.ts';
 export { contribution } from '../app/data/manifest.ts';
 /** Every prototype in the manifest, across sections. */
 export { allPrototypes } from '../app/data/manifest.ts';
+
+/** @stable A prototype with its artifacts loaded, for code that has only its manifest entry. */
+export { withItems } from '../app/data/manifest.ts';
 /** A prototype's file by its slug. */
 export { findArtifact } from '../app/data/manifest.ts';
 /** A file's display label. */

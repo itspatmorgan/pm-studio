@@ -8,6 +8,7 @@ import type { AnyRoute, NavigateOptions } from '@tanstack/react-router';
 import { compatible, type ModuleSpec } from '@/platform/core/modules';
 import type { Artifact, Manifest, Prototype, PrototypeInfo } from '@/platform/app/data/types';
 import type { ArtifactAction, ArtifactActionContext } from '@/platform/app/data/fileTypeModule';
+import type { FileTreePolicy } from '@/platform/app/files/FileTree';
 import { MODULES } from '@/platform/app/data/modules';
 import { isEnabled } from '@/platform/app/data/config';
 
@@ -60,11 +61,24 @@ export type ModuleApp = {
   // Where its overview sits on the front page, low first, when that differs from `order`: while you run the app locally
   // (where your own work comes first) and on the deployed site (where what colleagues come for does).
   homeOrder?: { local?: number; deployed?: number };
+  // A full-width area below the front page's panel, for a module whose front page contribution is visual rather than a
+  // list: the panel stays narrow and first, and this fills the space under it. Modules with one show in `homeOrder`.
+  homeBoard?: ComponentType<{ manifest: Manifest }>;
   // CommandItems it adds to the palette's Places group, and groups of its own.
   places?: ComponentType<PaletteContext>;
   palette?: ComponentType<PaletteContext>;
   // Where its palette groups sit among the other modules' groups, low first, when that differs from `order`.
   paletteOrder?: number;
+  // How the items of its section open, for a module whose items need more than a prototype's viewer. All optional:
+  // `policy` adjusts the item's file tree (it gets the prototype policy and returns the section's, to add badges, an
+  // order, or fixed folders); `landing` is the module's own page for an item, shown at the item's own address
+  // (/<section>/<id>) in place of its first file; and `shows` names the files the landing shows in place of the viewer,
+  // so opening one of them from the navigation opens it in the landing (`item`). The navigation stays beside it.
+  sectionItem?: {
+    policy?: (base: FileTreePolicy) => FileTreePolicy;
+    landing?: ComponentType<{ proto: Prototype; item?: Artifact }>;
+    shows?: (item: Artifact) => boolean;
+  };
   /** @stable Where the shared Documentation address (/documentation) opens, instead of the Context & Skills browser. Receives the manifest; return undefined to leave the default. */
   landing?: (manifest: Manifest) => string | undefined;
 };
@@ -85,14 +99,18 @@ export const moduleApps: InstalledModule[] = Object.entries(apps)
   .sort((a, b) => a.app.order - b.app.order);
 
 // The modules that have something for the front page, in the order they show there.
-export const homeApps = (local: boolean): InstalledModule[] =>
+export const homeApps = (local: boolean, slot: 'overview' | 'homeBoard' = 'overview'): InstalledModule[] =>
   moduleApps
-    .filter(({ app }) => app.overview)
+    .filter(({ app }) => app[slot])
     .sort(
       (a, b) =>
         (a.app.homeOrder?.[local ? 'local' : 'deployed'] ?? a.app.order) -
         (b.app.homeOrder?.[local ? 'local' : 'deployed'] ?? b.app.order),
     );
+
+// The app of the module that owns a section, by its key (the first part of an item's address), if it has one.
+export const sectionApp = (key: string): ModuleApp | undefined =>
+  moduleApps.find(({ spec }) => spec.section?.key === key)?.app;
 
 // The address a module's section opens at, like "/examples".
 export const sectionPath = (spec: ModuleSpec) => `/${spec.section!.key}`;

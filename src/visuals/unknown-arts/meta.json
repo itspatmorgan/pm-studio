@@ -1,0 +1,16 @@
+{
+  "formatVersion": 1,
+  "title": "Unknown Arts",
+  "line": "Feature art for the newsletter",
+  "created": "2026-11-25",
+  "ownerContributorId": "g0t182676p1re4fm",
+  "systemId": "v4576ka1mbpbqdp1",
+  "maintainers": ["patrick"],
+  "pieces": [
+    {
+      "id": "article-art",
+      "title": "Article art, drawn live",
+      "family": "feature-art"
+    }
+  ]
+}

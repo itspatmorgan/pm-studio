@@ -61,6 +61,6 @@ export type { ArtifactHostProps } from '../app/artifacts/ArtifactHost.tsx';
 /** Shared file navigation with explicit owner creation, bundle and permission policies. */
 export { default as FileTree } from '../app/files/FileTree.tsx';
 /** Owner policies and props for shared file navigation. */
-export type { FileTreePolicy, FileTreeProps, NewFileOption } from '../app/files/FileTree.tsx';
+export type { FileTreeContext, FileTreePolicy, FileTreeProps, NewFileOption } from '../app/files/FileTree.tsx';
 /** Copyable error presentation for file-backed surfaces. */
 export { default as FileError } from '../app/files/FileError.tsx';

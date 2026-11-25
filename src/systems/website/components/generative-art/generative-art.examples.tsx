@@ -1,6 +1,4 @@
-import { GenerativePatternSurface } from './_GenerativePatternSurface';
-import { LiveEditorialVisual } from './_LiveEditorialVisual';
-import { UAMark } from './_UAMark';
+import { GenerativePatternSurface, LiveEditorialVisual, UAMark } from '.';
 export const ArticleHero = () => (
   <div className="relative aspect-[1200/630] w-full overflow-hidden rounded-lg border border-border bg-card">
     <LiveEditorialVisual visual={{ background: 'warm-dark-gray', generator: { type: 'isoline', seed: 359, levels: 12, scale: 350, strokeWidth: 0.7, opacity: 75, color: 'copper' }, texture: 0, grain: 24 }} />

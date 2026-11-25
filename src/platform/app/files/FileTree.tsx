@@ -267,9 +267,15 @@ type TreeNavigation = {
   onFoldersExpanded: (open: boolean) => void;
 };
 export type NewFileOption = { target: string; label: string; icon: typeof File01Icon };
+// What a policy's arrange and badge see: the open prototype and the manifest, which holds what modules contribute.
+export type FileTreeContext = { proto: Prototype; manifest: Manifest };
 export type FileTreePolicy = {
   scope: 'prototype' | 'systemContent';
   noun: 'artifacts' | 'files';
+  // The list's heading, when it names what a section's items hold better than "Artifacts", such as a visual's pieces.
+  heading?: string;
+  // Rows of the section's own at the top of the list, before its files, such as a visual project's overview row.
+  Leading?: ComponentType<FileTreeContext>;
   reorder: boolean;
   canChange(proto: Prototype, actor: string | null): boolean;
   newOptions(folder: string, context: { live: boolean; editable: boolean }): NewFileOption[];
@@ -278,8 +284,17 @@ export type FileTreePolicy = {
   canMoveTo?(source: { path: string; dir: boolean }, folder: string): boolean;
   hideFolderControls?: boolean;
   itemForNode?(node: FileNode, items: Map<string, Artifact>): Artifact | undefined;
-  bundleItem?(node: FileNode, items: Map<string, Artifact>): Artifact | undefined;
+  bundleItem?(node: FileNode, items: Map<string, Artifact>, context: FileTreeContext): Artifact | undefined;
+  // The name a bundled folder's row shows, when it should be the folder's rather than its item's: a visual's piece
+  // shows its folder's name, not the name of the version it opens.
+  bundleLabel?(node: FileNode): string | undefined;
   creationTarget?: string;
+  // The order of the rows, on top of the prototype's order: a section can put some first, such as a visual's selected
+  // version. It gets every level of the tree and returns it rearranged, never with rows added or removed.
+  arrange?(nodes: FileNode[], context: FileTreeContext): FileNode[];
+  // A short mark after an item's name, such as a version's status, also on a bundled folder's row (for the item it
+  // opens). Return nothing for an item without one.
+  badge?(item: Artifact, context: FileTreeContext): ReactNode;
   // Actions other modules add to an item's menu; the prototype navigation passes ModuleApp.artifactActions.
   artifactActions?(context: ArtifactActionContext, manifest: Manifest): readonly ArtifactAction[];
   CreationDialog?: ComponentType<{
@@ -372,7 +387,8 @@ export default function FileTree({
   });
   // Switched in the header's "…" menu, and remembered for every prototype.
   const [showAll] = useShowAllFiles();
-  const nodes = !files ? itemsAsNodes(proto) : showAll ? files : visibleNodes(files, items);
+  const listed = !files ? itemsAsNodes(proto) : showAll ? files : visibleNodes(files, items);
+  const nodes = policy.arrange ? policy.arrange(listed, { proto, manifest }) : listed;
   const [filterOpen, setFilterOpen] = useState(false);
   const [filter, setFilter] = useState('');
   const savedFolders = navigation ? folderState.get(proto.id) : undefined;
@@ -791,7 +807,7 @@ export default function FileTree({
         );
       }
       if (node.dir) {
-        const bundled = policy.bundleItem?.(node, items);
+        const bundled = policy.bundleItem?.(node, items, { proto, manifest });
         if (bundled) {
           return (
             <Fragment key={node.path}>
@@ -813,8 +829,9 @@ export default function FileTree({
                     />
                   )}
                   <span className='min-w-0 flex-1 truncate' title={repoPath(proto, bundled.path)}>
-                    {artifactLabel(bundled.path, proto)}
+                    {policy.bundleLabel?.(node) ?? artifactLabel(bundled.path, proto)}
                   </span>
+                  {policy.badge?.(bundled, { proto, manifest })}
                 </Link>,
               )}
               {createField(node.path, depth)}
@@ -908,6 +925,7 @@ export default function FileTree({
                   />
                 )}
                 {label}
+                {policy.badge?.(item, { proto, manifest })}
               </Link>,
             )}
           </DragRow>
@@ -980,7 +998,7 @@ export default function FileTree({
           </button>
         ) : (
           <p className='min-w-0 flex-1 truncate text-[12px] font-semibold leading-none'>
-            {showAll || policy.noun === 'files' ? 'Files' : 'Artifacts'}
+            {showAll || policy.noun === 'files' ? 'Files' : (policy.heading ?? 'Artifacts')}
           </p>
         )}
         {/* Shown while the pointer is over the list or focus is in it, so the heading stays quiet. */}
@@ -1085,6 +1103,7 @@ export default function FileTree({
           {q && shown.length === 0 && (
             <p className='px-2.5 py-1 text-[12px] text-muted-foreground'>No matching {noun}.</p>
           )}
+          {!branch && !q && policy.Leading && <policy.Leading proto={proto} manifest={manifest} />}
           {createField('', 0)}
           {rows(shown, 0)}
         </div>

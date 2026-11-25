@@ -1,6 +1,6 @@
 // Keeps the manifest live during `pnpm dev`, without reloading the page.
 //
-// Vite already watches every file. When something under src/prototypes/, a module's content folder, src/platform/, the system roots (src/platform/systems/ and src/systems/), the module roots (src/platform/modules/ and src/modules/, Markdown only), the folders a module's build.ts watches (the Manual's pages, src/platform/modules/documentation/pages/), or a module contract
+// Vite already watches every file. When something under src/prototypes/, a module's content folder, src/platform/, the system roots (src/platform/systems/ and src/systems/), the module roots (src/platform/modules/ and src/modules/, Markdown only), the folders a module's build.ts watches (the Manual's pages, src/platform/modules/documentation/pages/), the record files a module's build.ts reads inside items (a visual's _iterations.json), or a module contract
 // changes (from the app, an agent, or your editor), this rebuilds the manifest in-process
 // and pushes it to the app over Vite's dev connection. The app swaps it in and refreshes
 // only the routes that use it (see router.tsx), so the open view and scroll position stay.
@@ -18,13 +18,15 @@ import { identifyAuthored, prototypeFolderOf } from '../lib/prototype-identifica
 import { resolveContributor } from '../cli/resolve-contributor.js';
 import { ENABLED_MODULES, PROTOTYPE_DIRS } from '../lib/modules.js';
 import { CONTRIBUTORS_DIR } from '../lib/contributors.js';
-import { contributedWatchDirs } from '../lib/module-builds.js';
+import { contributedRecords, contributedWatchDirs } from '../lib/module-builds.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../..');
 const PROTOS = path.join(ROOT, 'src', 'prototypes');
 const SYSTEM_CONTENT = path.join(ROOT, 'src', 'platform');
 // Folders the enabled modules' build.ts hooks ask to watch, such as the Manual's pages.
 const HOOK_DIRS = contributedWatchDirs();
+// Files the enabled modules' build.ts hooks read inside an item's folder (ModuleBuild.records).
+const RECORDS = contributedRecords();
 // Where systems live: the supplied root (inside src/platform) and the team's.
 const SYSTEMS = SYSTEM_ROOTS.map(systemsRoot => path.join(ROOT, systemsRoot));
 // Where modules live: the supplied root (inside src/platform) and the team's.
@@ -61,7 +63,13 @@ function relevant(file, kind) {
   if (inside(SYSTEM_CONTENT, file)) return kind !== 'change' || file.endsWith('.md');
   if (file.endsWith('.md') && /src[\\/]platform[\\/]core[\\/]/.test(file)) return true;
   if (![PROTOS, ...PROTOTYPE_DIRS].some(dir => inside(dir, file))) return false;
-  return kind !== 'change' || path.basename(file) === 'meta.json' || hasFidelity(file) || lacksIdentity(file);
+  return (
+    kind !== 'change' ||
+    path.basename(file) === 'meta.json' ||
+    RECORDS.has(path.basename(file)) ||
+    hasFidelity(file) ||
+    lacksIdentity(file)
+  );
 }
 
 const hasFidelity = file => {

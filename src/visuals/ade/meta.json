@@ -1,0 +1,46 @@
+{
+  "formatVersion": 1,
+  "title": "ADÉ at Sublime",
+  "line": "Sublime Security",
+  "created": "2026-11-25",
+  "ownerContributorId": "g0t182676p1re4fm",
+  "systemId": "v4576ka1mbpbqdp1",
+  "maintainers": ["patrick"],
+  "pieces": [
+    {
+      "id": "card",
+      "title": "ADÉ, auto-accepted",
+      "family": "project-card"
+    },
+    {
+      "id": "message-gap",
+      "title": "Each missed threat needed a new rule",
+      "family": "case-study-scene"
+    },
+    {
+      "id": "job-review",
+      "title": "The agent writes rules that people can read and change",
+      "family": "case-study-scene"
+    },
+    {
+      "id": "handoff",
+      "title": "The agent starts where the team finds the threat",
+      "family": "case-study-scene"
+    },
+    {
+      "id": "auto-accepted",
+      "title": "Each rule shows what it would catch before it goes live",
+      "family": "case-study-scene"
+    },
+    {
+      "id": "automation-config",
+      "title": "Each team decides how much the agent does alone",
+      "family": "case-study-scene"
+    },
+    {
+      "id": "jobs",
+      "title": "Missed threats now get a rule in under 2 hours",
+      "family": "case-study-scene"
+    }
+  ]
+}

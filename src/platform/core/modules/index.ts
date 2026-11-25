@@ -108,6 +108,9 @@ export type ModuleBuild<Data = unknown> = {
     out: { log(...args: unknown[]): void; warn(...args: unknown[]): void; error(...args: unknown[]): void };
   }): { data: Data; errors: number };
   watch?: string[];
+  // File names it reads inside the items of prototype-shaped folders (a visual's _iterations.json). An edit to one
+  // rebuilds the manifest in the dev server, as an edit to meta.json does; other edits inside an item are left to hot reload.
+  records?: string[];
   sourceFiles?(data: Data | undefined, context: { root: string }): string[];
 };
 

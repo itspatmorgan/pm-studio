@@ -16,7 +16,7 @@ Website began as Design Studio's Marketing starter and was renamed and rebuilt f
 - **Pixel wave text:** `src/components/PixelWaveText.astro` and `src/scripts/pixel-wave.ts`, rewritten in React; the helpers return cleanup functions.
 - **Logo:** the four-pixel mark and its hover interactions (`src/components/layout/Logo.astro`, rewritten in React).
 - **Shared site pieces:** Badge, Print photo, Project card (with each case study's live visual), Lab card (with live previews), Article list item, Kind words, Section header, and Media row, extracted from the site's pages and components.
-- **Generative art:** the Pattern Engine's deterministic generators, `LiveEditorialVisual`, `GenerativePatternSurface`, `ArtCanvas`, and `UAMark` (`src/lab/editorial-art/`). Pattern Engine keeps only its editor UI, in the itspatmorgan.com prototype.
+- **Generative art:** the deterministic generators, `LiveEditorialVisual`, `GenerativePatternSurface`, `ArtCanvas`, and `UAMark`, re-exported from the kit (see below). Pattern Engine, the editor for them, is its own prototype.
 - **Theme hooks:** `useDark`, `useReduced`, and `usePhone`, imported from `@itspatmorgan/kit` (see below).
 - **Case study scenes and demos:** the scene player and stages (`case-study`), and the Sublime, query builder, expansion, Design Studio and Studio case demos, all from the kit. `CaseStudyPage` and `Slide` port `CaseStudyLayout.astro` and `Slide.astro`.
 - **Design Studio landing styles:** `styles/site/ds-landing.css`, from the `<style>` block of `src/pages/design-studio.astro`.
@@ -26,7 +26,7 @@ Website began as Design Studio's Marketing starter and was renamed and rebuilt f
 
 ## Shared kit
 
-The scene player and stages (`case-study`), the case study and Design Studio demos (`sublime`, `query-builder`, `expansion`, `design-studio`, `studio-case`), and the theme hooks are not copies: they come from `@itspatmorgan/kit`, a package in the site's repository (`packages/kit`) that the site imports too. The system depends on it at a pinned commit in `package.json`; each kit component imports its own stylesheets, as on the site, and Studio fits them to the Website theme when it bundles them. The system's own components and the prototype's pages use some kit classes directly, so `styles/theme.css` imports those stylesheets too, the same ones the site's pages import. To take a site change, move the pin to the new commit and run `pnpm install`.
+The scene player and stages (`case-study`), the case study and Design Studio demos (`sublime`, `query-builder`, `expansion`, `design-studio`, `studio-case`), the generative art engine, and the theme hooks are not copies: they come from `@itspatmorgan/kit`, a package in the site's repository (`packages/kit`) that the site imports too. The system depends on it at a pinned commit in `package.json`; each kit component imports its own stylesheets, as on the site, and Studio fits them to the Website theme when it bundles them. The system's own components and the prototype's pages use some kit classes directly, so `styles/theme.css` imports those stylesheets too, the same ones the site's pages import. To take a site change, move the pin to the new commit and run `pnpm install`.
 
 ## Adaptations
 
@@ -39,7 +39,6 @@ The scene player and stages (`case-study`), the case study and Design Studio dem
 - `system.ts` declares `origin: null`: credit comes from the libraries list instead. shadcn/ui is credited on Button, Badge, Tabs, and Tooltip, and itspatmorgan.com on everything ported from the site. Add a new component's slug to the right library's `components`.
 - Internal component files start with `_`, so the Systems pages list one documented entry per folder; each folder's `index.ts` is its public surface.
 - `useDark` follows the theme boundary's `data-color-mode`, not `.dark` on `<html>`. The generative art and Lab previews use it.
-- `ArtCanvas` imports its paper textures from `assets/images/` instead of the site's `/images/textures/` URLs.
 - `StudioQuote`, `StudioPress`, and `StudioLesson` are the site's Astro components rewritten in React, with their styles in `styles/site/studio-case-astro.css`.
 
 The shadcn MIT notice is retained in `LICENSE`.

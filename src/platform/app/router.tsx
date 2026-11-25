@@ -3,7 +3,7 @@ import { artifactAvailability } from '@/platform/core/fileTypes';
 // contributed by Systems; their named surfaces remain relative to the system ID.
 // Module-owned sections retain their own declared routing contract.
 // https://tanstack.com/router/latest/docs/framework/react/routing/code-based-routing
-import { Suspense, useRef } from 'react';
+import { Suspense, useRef, type ReactNode } from 'react';
 import {
   createHashHistory,
   createRootRoute,
@@ -40,7 +40,7 @@ import type { Artifact, Manifest, Prototype } from '@/platform/app/data/types';
 import { createRefreshQueue } from '@/platform/app/data/refreshQueue';
 import { TAB_ID } from '@/platform/app/data/files';
 import { onMutation } from '@/platform/app/data/mutations';
-import { moduleApps } from '@/platform/app/modules';
+import { moduleApps, sectionApp } from '@/platform/app/modules';
 import { downloaded } from '@/platform/app/data/downloaded';
 import { APP_NAME } from '@/platform/app/data/config';
 import { loadReference } from '@/platform/app/docs/loadReference';
@@ -249,7 +249,8 @@ const contextItemRoute = createRoute({
 });
 
 // ?mode=source shows an item's text instead of the item (dev only): "Edit source" in its file menu.
-type ItemSearch = { mode?: 'source' };
+// source: the file's text. viewer: the ordinary viewer, for a file a section's landing would otherwise show (ModuleApp.sectionItem).
+type ItemSearch = { mode?: 'source' | 'viewer' };
 
 // Loads an item before the route renders, so the current one stays on screen until the next
 // one is ready. Its file type (<module folder>/) loads the file. An unknown address, or a type
@@ -425,9 +426,11 @@ const loadProto = async ({ contributor, prototype }: { contributor?: string; pro
   return { proto };
 };
 const searchOf = (search: Record<string, unknown>): ItemSearch => ({
-  mode: search.mode === 'source' ? 'source' : undefined,
+  mode: search.mode === 'source' || search.mode === 'viewer' ? search.mode : undefined,
 });
-const titleOf = ({ loaderData }: { loaderData?: ItemData }) => ({ meta: [{ title: loaderData?.title ?? APP_NAME }] });
+const titleOf = ({ loaderData }: { loaderData?: { title: string } }) => ({
+  meta: [{ title: loaderData?.title ?? APP_NAME }],
+});
 
 // A prototype's, with its navigation around whichever item is open.
 const prototypeRoute = createRoute({
@@ -484,23 +487,60 @@ const sectionItemRoute = createRoute({
   component: () => <PrototypeLayout proto={sectionItemRoute.useLoaderData().proto} />,
   notFoundComponent: NotFound,
 });
+// A section whose module has a landing for its items (ModuleApp.sectionItem) shows that here instead of the first item.
+type LandingData = { landing: true; title: string; path?: string };
 const sectionItemIndexRoute = createRoute({
   getParentRoute: () => sectionItemRoute,
   path: '/',
   loaderDeps: ({ search }) => ({ mode: search.mode }),
-  loader: ({ params, deps, cause }): Promise<ItemData> =>
-    itemLoader(params, deps.mode, retainedIndexPath(sectionItemIndexRoute.id, cause)),
+  loader: async ({ params, deps, cause }): Promise<ItemData | LandingData> => {
+    if (sectionApp(params.contributor)?.sectionItem?.landing) {
+      const { proto } = await loadProto(params);
+      return { landing: true, title: [proto.title, APP_NAME].join(' — ') };
+    }
+    return itemLoader(params, deps.mode, retainedIndexPath(sectionItemIndexRoute.id, cause));
+  },
   head: titleOf,
-  component: () => <ItemPage data={sectionItemIndexRoute.useLoaderData()} />,
+  component: function SectionItemIndex() {
+    const data = sectionItemIndexRoute.useLoaderData();
+    const { proto } = sectionItemRoute.useLoaderData();
+    const Landing = sectionApp(proto.contributorKey)?.sectionItem?.landing;
+    if ('landing' in data) return Landing ? <Landing proto={proto} /> : null;
+    return <ItemPage data={data} />;
+  },
   notFoundComponent: NotFound,
 });
+// A file the section's landing shows (ModuleApp.sectionItem.shows) opens in the landing, unless asked for its source or
+// for the ordinary viewer (?mode=viewer), where the tools of a view's own page, such as DialKit's panel, are.
 const sectionItemSplatRoute = createRoute({
   getParentRoute: () => sectionItemRoute,
   path: '$',
   loaderDeps: ({ search }) => ({ mode: search.mode }),
-  loader: ({ params, deps }) => itemLoader(params, deps.mode),
+  loader: async ({ params, deps }): Promise<ItemData | LandingData> => {
+    const section = sectionApp(params.contributor)?.sectionItem;
+    if (section?.landing && section.shows && !deps.mode) {
+      const { proto } = await loadProto(params);
+      const item = findArtifact(proto, params._splat ?? '');
+      if (item && section.shows(item))
+        return {
+          landing: true,
+          title: [proto.title, artifactLabel(item.path, proto), APP_NAME].join(' — '),
+          path: item.path,
+        };
+    }
+    return itemLoader(params, deps.mode);
+  },
   head: titleOf,
-  component: () => <ItemPage data={sectionItemSplatRoute.useLoaderData()} />,
+  component: function SectionItemFile(): ReactNode {
+    const data = sectionItemSplatRoute.useLoaderData();
+    const { proto } = sectionItemRoute.useLoaderData();
+    const Landing = sectionApp(proto.contributorKey)?.sectionItem?.landing;
+    if ('landing' in data)
+      return Landing ? (
+        <Landing proto={proto} item={proto.artifacts.find((a: Artifact) => a.path === data.path)} />
+      ) : null;
+    return <ItemPage data={data} />;
+  },
   notFoundComponent: NotFound,
 });
 
