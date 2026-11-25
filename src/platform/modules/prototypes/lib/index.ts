@@ -1,6 +1,13 @@
 // Supported runtime navigation for prototype code. Paths remain authoring
 // dependencies; the supplied inventory resolves them to permanent public URLs.
-import { createContext, createElement, useContext, useMemo, type ComponentPropsWithoutRef, type ReactElement } from 'react';
+import {
+  createContext,
+  createElement,
+  useContext,
+  useMemo,
+  type ComponentPropsWithoutRef,
+  type ReactElement,
+} from 'react';
 import { Link as RouterLink, useNavigate as useRouterNavigate, useRouterState } from '@tanstack/react-router';
 
 export type PrototypeNavigationScope = {
