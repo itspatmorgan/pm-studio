@@ -62,3 +62,4 @@ This is Patrick's personal studio, and it doubles as the lab for Design Studio (
 Changes to upstream-owned paths that this studio carries. Review each one when merging a Design Studio release.
 
 - **CSS fitting** (TASK-169): `cssFitting` in `system.ts` (`src/platform/modules/systems/spec.ts`, the system template, Studio's own `system.ts`), `src/platform/node/lib/css-fit.js` and its test, the calls to it in `src/platform/node/build/vite-css-plugin.js` (which exports `themeOf`) and `src/platform/node/build/build-manifest.js`, and `src/platform/node/check/check-modules.js`, which validates tokens from `themeOf` so imported tokens count. Documented in `src/platform/modules/systems/README.md`.
+- **View address search** (Lab to Snapshots): `useSearchParams` in `src/platform/modules/prototypes/lib/index.ts`, documented in `src/platform/modules/prototypes/README.md`. Lets a view open from settings in a shared link, such as Pattern Engine from an article's visual.
