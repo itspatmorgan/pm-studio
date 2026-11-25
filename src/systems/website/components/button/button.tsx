@@ -1,6 +1,6 @@
 import { Button as ButtonPrimitive } from '@base-ui/react/button';
 import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '#studio/runtime';
+import { cn } from 'cn';
 
 // Ported from itspatmorgan.com's src/components/ui/button.tsx (shadcn base-nova on Base UI).
 const buttonVariants = cva(
