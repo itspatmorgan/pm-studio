@@ -7,18 +7,21 @@
 //
 // While you run the app locally it greets you and puts your own work first. The deployed site doesn't know who is
 // looking, so it names the app, adds the tagline from studio.config.json, and puts what colleagues come for first.
-import { useEffect, useRef, useState } from 'react';
-import { getRouteApi } from '@tanstack/react-router';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { getRouteApi, Link } from '@tanstack/react-router';
 import { cn } from '#studio/runtime';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { Search01Icon } from '@hugeicons/core-free-icons';
 import { Card } from '@/platform/systems/studio/components/card';
 import { APP_NAME, TAGLINE } from '@/platform/app/data/config';
-import { homeApps } from '@/platform/app/modules';
+import { homeApps, moduleApps, sectionPath } from '@/platform/app/modules';
 import { useMyName } from '@/platform/app/data/files';
 import { useOpenPalette } from '@/platform/app/shell/paletteContext';
 
 const rootApi = getRouteApi('__root__');
+// The front page's search works in place (CommandPaletteDialog.tsx), loaded with the palette's list as the page opens.
+const loadSearch = () => import('@/platform/app/shell/CommandPaletteDialog');
+const InlineSearch = lazy(() => loadSearch().then(m => ({ default: m.InlineSearch })));
 
 export default function Home() {
   const manifest = rootApi.useLoaderData();
@@ -41,6 +44,9 @@ export default function Home() {
     observer.observe(el);
     return () => observer.disconnect();
   }, [boards.length]);
+  useEffect(() => {
+    if (boards.length) void loadSearch();
+  }, [boards.length]);
   // The search opens the ⌘K palette, the search every page has, put where a first-time visitor will see it.
   // Custom on purpose: the stock Button and Kbd looked like a control placed in the panel.
   const search = (className: string) => (
@@ -57,27 +63,50 @@ export default function Home() {
       <kbd className='rounded border border-border px-1.5 py-0.5 font-sans text-[11px] leading-none'>⌘K</kbd>
     </button>
   );
-  // With a board, the front page is a welcome first and a gallery second, like an assistant's home: the greeting and one
-  // large search sit centred in the first screen, over a faint dot field that fades out from the middle, and the board
-  // starts just below, its first row showing under a fade so the page asks to be scrolled. The fade lifts once you do.
-  if (boards.length)
+  // With a board, the front page is a welcome first and a gallery second, like an assistant's home. The first screen is
+  // the greeting, one large search that works in place, and under it a row of ways in (each section on the rail), all
+  // centred a little above the middle over a faint dot field. The board starts just below, its first row showing under a
+  // fade so the page asks to be scrolled. The fade lifts once you do.
+  if (boards.length) {
+    const field =
+      'h-14 rounded-2xl bg-background px-5 text-[15px] ring-1 ring-border shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-12px_rgb(0_0_0/0.12)] transition-shadow focus-within:ring-2 focus-within:ring-ring hover:ring-foreground/20';
+    const places = moduleApps.filter(({ app }) => app.rail === 'top');
     return (
       <div className='relative w-full'>
-        <section className='relative isolate flex min-h-[68svh] flex-col items-center justify-center px-5 pt-14 pb-12'>
+        <section className='relative isolate z-10 flex min-h-[56svh] flex-col items-center justify-center px-5 pt-12 pb-10'>
           <div
             aria-hidden
-            className='pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(var(--border)_1px,transparent_1.5px)] bg-[size:22px_22px] [mask-image:radial-gradient(ellipse_55%_60%_at_50%_48%,black_20%,transparent_75%)]'
+            className='pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(var(--border)_1px,transparent_1.5px)] bg-[size:22px_22px] [mask-image:radial-gradient(ellipse_50%_58%_at_50%_46%,black_15%,transparent_72%)]'
           />
           <span ref={top} aria-hidden className='absolute top-0 h-20 w-px' />
           <h1 className='text-center text-[30px] leading-tight font-semibold tracking-tight text-balance text-foreground sm:text-[38px]'>
             {heading}
           </h1>
           {!local && TAGLINE && <p className='mt-2 text-center text-[15px] text-muted-foreground'>{TAGLINE}</p>}
-          <div className='mt-8 w-full max-w-[560px]'>
-            {search(
-              'h-14 rounded-2xl bg-background px-5 text-[15px] ring-1 ring-border shadow-[0_1px_2px_rgb(0_0_0/0.04),0_8px_24px_-12px_rgb(0_0_0/0.12)] hover:bg-background hover:ring-foreground/20 focus-visible:bg-background focus-visible:ring-2 focus-visible:ring-ring',
-            )}
+          <div className='mt-8 w-full max-w-[600px]'>
+            <Suspense
+              fallback={
+                <div className={cn('flex items-center gap-2.5 text-muted-foreground', field)}>
+                  <HugeiconsIcon icon={Search01Icon} size={16} />
+                  Search the studio
+                </div>
+              }
+            >
+              <InlineSearch className={field} placeholder='Search the studio' />
+            </Suspense>
           </div>
+          <nav aria-label='Sections' className='mt-4 flex flex-wrap justify-center gap-2'>
+            {places.map(({ spec, app }) => (
+              <Link
+                key={spec.id}
+                to={sectionPath(spec) as never}
+                className='flex h-8 items-center gap-1.5 rounded-full bg-background px-3 text-[13px] text-muted-foreground ring-1 ring-border transition-colors outline-none hover:text-foreground hover:ring-foreground/20 focus-visible:ring-2 focus-visible:ring-ring'
+              >
+                <HugeiconsIcon icon={app.icon} size={14} />
+                {app.navLabel ?? spec.label}
+              </Link>
+            ))}
+          </nav>
         </section>
         {boards.map(({ spec, app }) => app.homeBoard && <app.homeBoard key={spec.id} manifest={manifest} />)}
         <div
@@ -89,6 +118,7 @@ export default function Home() {
         />
       </div>
     );
+  }
   return (
     <main className='mx-auto w-full max-w-xl px-4 pt-[12vh] pb-10'>
       <header className='mb-6'>
