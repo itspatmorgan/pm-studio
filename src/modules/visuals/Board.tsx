@@ -1,7 +1,7 @@
 // Snapshots: the board of the visuals the studio leads with, across the front page. Every tile is the visual's selected
 // version, live. The board is laid out in justified rows: each tile grows by its format's aspect ratio, so a row's tiles
-// share one height exactly, whatever their shapes. Hovering a tile lights it and dims the rest, with its name following
-// the pointer; opening it grows the peek out of the tile.
+// share one height exactly, whatever their shapes. Each tile's name sits in its corner; hovering a tile lights it and
+// softly dims the rest, and opening it grows the peek out of the tile.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import type { ArtifactContext, Manifest } from '#studio/data';
@@ -53,18 +53,8 @@ function Tile({
   const [box, { width }] = useSize<HTMLDivElement>();
   // The board is the showcase, so its tiles play, but only while on screen, and not while a peek covers them.
   const visible = useNear(box, { release: true });
-  const label = useRef<HTMLSpanElement>(null);
   const { width: w, height: h } = sizeOf(piece.visual);
   const { snapshot } = piece;
-  // The name rides just below and right of the pointer, kept inside the tile.
-  const follow = (event: React.PointerEvent<HTMLButtonElement>) => {
-    const el = label.current;
-    if (!el || event.pointerType !== 'mouse') return;
-    const r = event.currentTarget.getBoundingClientRect();
-    const x = Math.min(event.clientX - r.left + 16, r.width - el.offsetWidth - 12);
-    const y = Math.min(event.clientY - r.top + 18, r.height - el.offsetHeight - 12);
-    el.style.transform = `translate(${Math.max(12, x)}px, ${Math.max(12, y)}px)`;
-  };
   return (
     <button
       ref={tileRef}
@@ -72,31 +62,24 @@ function Tile({
       onClick={event => onOpen(event.currentTarget.getBoundingClientRect())}
       onPointerEnter={() => onHover(true)}
       onPointerLeave={() => onHover(false)}
-      onPointerMove={follow}
       onFocus={() => onHover(true)}
       onBlur={() => onHover(false)}
       aria-label={`${snapshot.title}. ${snapshot.line}`}
       style={{ '--grow': w / h, aspectRatio: `${w} / ${h}` } as React.CSSProperties}
       className={cn(
-        'group relative block w-full min-w-0 cursor-zoom-in lg:[flex:var(--grow)_1_0%] overflow-hidden rounded-[18px] bg-card text-left outline-none ring-1 ring-border transition-[opacity,box-shadow,transform] duration-500 ease-out hover:-translate-y-[2px] hover:shadow-[0_18px_40px_-18px_rgb(0_0_0/0.35)] hover:ring-foreground/20 focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none motion-reduce:hover:translate-y-0',
-        dimmed && 'opacity-55',
+        'group relative block w-full min-w-0 lg:[flex:var(--grow)_1_0%] overflow-hidden rounded-[18px] bg-card text-left outline-none ring-1 ring-border transition-[opacity,box-shadow] duration-300 ease-out hover:shadow-[0_18px_40px_-18px_rgb(0_0_0/0.35)] hover:ring-foreground/20 focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none',
+        dimmed && 'opacity-70',
       )}
     >
       <div ref={box} className='absolute inset-0'>
         <Live visual={piece.visual} origin={origin} width={width} height={(width * h) / w} still={!visible || paused} />
       </div>
-      {/* Pointer devices: the name follows the pointer. Touch: it sits in the corner. */}
-      <span
-        ref={label}
-        className='pointer-events-none absolute top-0 left-0 hidden items-center gap-2 rounded-full bg-foreground py-1.5 pr-3.5 pl-3 text-xs font-medium whitespace-nowrap text-background opacity-0 shadow-sm transition-opacity duration-200 group-hover:opacity-100 [@media(hover:hover)]:flex'
-      >
-        {snapshot.title.length > 42 ? snapshot.line : snapshot.title}
-        <span aria-hidden className='opacity-60'>
-          Open
+      {/* The name sits in the corner on every device, and its arrow shows on hover, so nothing moves under the pointer. */}
+      <span className='pointer-events-none absolute bottom-3 left-3 flex max-w-[calc(100%-24px)] items-center gap-1.5 rounded-full bg-background/85 py-1.5 pr-2.5 pl-3 text-xs font-medium text-foreground ring-1 ring-border backdrop-blur-[8px]'>
+        <span className='truncate'>{snapshot.line}</span>
+        <span aria-hidden className='text-muted-foreground transition-[opacity,color] duration-300 group-hover:text-foreground group-focus-visible:text-foreground'>
+          →
         </span>
-      </span>
-      <span className='pointer-events-none absolute bottom-3 left-3 max-w-[calc(100%-24px)] truncate rounded-full bg-background/85 px-3 py-1.5 text-xs font-medium text-foreground ring-1 ring-border backdrop-blur-[8px] [@media(hover:hover)]:hidden'>
-        {snapshot.line}
       </span>
     </button>
   );
@@ -288,6 +271,14 @@ export function Board({ manifest }: { manifest: Manifest }) {
   const origins = useOrigins(manifest, visuals);
   const [open, setOpen] = useState<{ index: number; from: DOMRect } | null>(null);
   const [hovered, setHovered] = useState<number | null>(null);
+  // Leaving a tile clears the spotlight a moment later, so crossing the gap to the next tile doesn't flash the board.
+  const leave = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const hover = (i: number, on: boolean) => {
+    clearTimeout(leave.current);
+    if (on) setHovered(i);
+    else leave.current = setTimeout(() => setHovered(current => (current === i ? null : current)), 160);
+  };
+  useEffect(() => () => clearTimeout(leave.current), []);
   const tiles = useRef<(HTMLButtonElement | null)[]>([]);
   const tileRect = useCallback((i: number) => tiles.current[i]?.getBoundingClientRect(), []);
   const closed = useCallback(() => {
@@ -329,7 +320,7 @@ export function Board({ manifest }: { manifest: Manifest }) {
                 origin={origins[piece.visual.id]}
                 dimmed={hovered !== null && hovered !== i}
                 paused={open !== null}
-                onHover={on => setHovered(current => (on ? i : current === i ? null : current))}
+                onHover={on => hover(i, on)}
                 onOpen={from => setOpen({ index: i, from })}
                 tileRef={el => {
                   tiles.current[i] = el;

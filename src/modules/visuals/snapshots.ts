@@ -3,11 +3,11 @@
 // is here only if it is compelling on its own: the board is the most visual view of the studio, so every snapshot has
 // to earn its place.
 //
-// A snapshot is a visual (src/visuals/<id>/, drawn at its selected version's format) plus what the peek says about the
+// A snapshot is a piece of a visual project (drawn at its selected version's format) plus what the peek says about the
 // work and where it leads: snapshot, then peek, then source.
 
 export type Snapshot = {
-  /** The visual's folder in src/visuals/. The board draws its selected version. */
+  /** The piece, as <project>/<piece> (src/visuals/<project>/<piece>/). The board draws its selected version. */
   visual: string;
   /** The tile's width on the board: a wide lead (two thirds), a third, or a half. */
   tile: 'wide' | 'third' | 'half';
@@ -26,7 +26,7 @@ const SITE = 'https://itspatmorgan.com';
 
 export const SNAPSHOTS: Snapshot[] = [
   {
-    visual: 'article-art-reel',
+    visual: 'unknown-arts/article-art',
     tile: 'wide',
     line: 'Tool for Unknown Arts',
     title: 'Pattern Engine',
@@ -39,7 +39,7 @@ export const SNAPSHOTS: Snapshot[] = [
     clip: { video: '/snapshots/pattern-engine.mp4', poster: '/snapshots/pattern-engine.jpg' },
   },
   {
-    visual: 'pixel-wave',
+    visual: 'brand/pixel-wave',
     tile: 'third',
     line: 'Type study',
     title: 'Pixel Wave',
@@ -49,33 +49,33 @@ export const SNAPSHOTS: Snapshot[] = [
     clip: { video: '/snapshots/pixel-wave.mp4', poster: '/snapshots/pixel-wave.jpg' },
   },
   {
-    visual: 'ade-card',
+    visual: 'ade/card',
     tile: 'third',
     line: 'Sublime Security',
     title: 'Giving a security agent the right amount of control',
     summary:
       'At Sublime Security, I lead design for ADÉ, an AI agent that writes detection rules, and gives security teams control over its autonomy.',
     links: [
-      { label: 'See every visual', href: '/visuals?collection=ade' },
+      { label: 'See the visuals', href: '/visuals/ade' },
       { label: 'Read the case study', href: `${SITE}/work/sublime-agents` },
     ],
     clip: null,
   },
   {
-    visual: 'design-studio-card',
+    visual: 'design-studio/card',
     tile: 'third',
     line: 'Design Studio',
     title: 'Building a design environment for people and agents',
     summary:
       "I designed and built Design Studio on my own: the environment where Sublime's product team and their agents prototype together, and an open-source version for any team.",
     links: [
-      { label: 'See every visual', href: '/visuals?collection=design-studio' },
+      { label: 'See the visuals', href: '/visuals/design-studio' },
       { label: 'Read the case study', href: `${SITE}/work/design-studio` },
     ],
     clip: null,
   },
   {
-    visual: 'pixel-mark',
+    visual: 'brand/pixel-mark',
     tile: 'third',
     line: 'Identity',
     title: 'Pixel Mark',
@@ -84,7 +84,7 @@ export const SNAPSHOTS: Snapshot[] = [
     clip: { video: '/snapshots/pixel-mark.mp4', poster: '/snapshots/pixel-mark.jpg' },
   },
   {
-    visual: 'expansion-card',
+    visual: 'expansion/card',
     tile: 'half',
     line: 'Signal Sciences',
     title: 'Expanding a security platform for a new use case',
@@ -94,7 +94,7 @@ export const SNAPSHOTS: Snapshot[] = [
     clip: null,
   },
   {
-    visual: 'query-builder-card',
+    visual: 'query-builder/card',
     tile: 'half',
     line: 'JupiterOne',
     title: 'Making a complex query language approachable',

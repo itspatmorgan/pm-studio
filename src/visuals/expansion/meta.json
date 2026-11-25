@@ -1,0 +1,18 @@
+{
+  "formatVersion": 1,
+  "title": "Bot defense at Signal Sciences",
+  "line": "Signal Sciences",
+  "created": "2026-11-25",
+  "ownerContributorId": "g0t182676p1re4fm",
+  "systemId": "v4576ka1mbpbqdp1",
+  "maintainers": [
+    "patrick"
+  ],
+  "pieces": [
+    {
+      "id": "card",
+      "title": "Bot signals at a glance",
+      "family": "project-card"
+    }
+  ]
+}

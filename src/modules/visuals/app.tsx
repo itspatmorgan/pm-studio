@@ -1,6 +1,7 @@
-// Visuals in the app: the /visuals index (built like the Prototypes gallery), and Snapshots, the board of the visuals the
-// studio leads with, across the front page below the search. Visuals open like prototypes at /visuals/<id>, through the
-// platform's section routes: on their page of versions (VisualPage.tsx), with Visuals' file tree policy (nav.tsx).
+// Visuals in the app: the /visuals index of projects (built like the Prototypes gallery), and Snapshots, the board of the
+// pieces the studio leads with, across the front page below the search. A project opens like a prototype at
+// /visuals/<project>, through the platform's section routes: on its page (VisualPage.tsx), with Visuals' file tree
+// policy (nav.tsx).
 import { createRoute } from '@tanstack/react-router';
 import { Image02Icon } from '@hugeicons/core-free-icons';
 import type { ModuleApp } from '#studio/ui';
@@ -24,7 +25,7 @@ export default {
     }),
   ],
   homeBoard: Board,
-  // A visual opens on its page of versions, and its navigation knows its standard folders and each version's status.
-  // Its versions open on that page too, so the navigation is the page's list of versions.
-  sectionItem: { policy: visualPolicy, landing: VisualPage, shows: item => item.path.startsWith('iterations/') },
+  // A project opens on its page of pieces, and its navigation lists the pieces, each with its versions and their status.
+  // A version opens on that page too, on its piece's stage, so the navigation is the page's list of pieces and versions.
+  sectionItem: { policy: visualPolicy, landing: VisualPage, shows: item => /^[a-z0-9-]+\/v\d{2,}\.tsx$/.test(item.path) },
 } satisfies ModuleApp;

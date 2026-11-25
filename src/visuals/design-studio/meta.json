@@ -1,0 +1,48 @@
+{
+  "formatVersion": 1,
+  "title": "Design Studio",
+  "line": "Open-source prototyping environment",
+  "created": "2026-11-25",
+  "ownerContributorId": "g0t182676p1re4fm",
+  "systemId": "v4576ka1mbpbqdp1",
+  "maintainers": [
+    "patrick"
+  ],
+  "pieces": [
+    {
+      "id": "card",
+      "title": "Design Studio at a glance",
+      "family": "project-card"
+    },
+    {
+      "id": "ask",
+      "title": "The product page hero",
+      "family": "case-study-scene"
+    },
+    {
+      "id": "workspace",
+      "title": "One workspace for you and your agent",
+      "family": "case-study-scene"
+    },
+    {
+      "id": "range",
+      "title": "The flexibility of a one-off, the truth of production",
+      "family": "case-study-scene"
+    },
+    {
+      "id": "systems",
+      "title": "Define a system, then build with it",
+      "family": "case-study-scene"
+    },
+    {
+      "id": "context",
+      "title": "Keep the thinking with the work",
+      "family": "case-study-scene"
+    },
+    {
+      "id": "share",
+      "title": "Share a lasting link with your team",
+      "family": "case-study-scene"
+    }
+  ]
+}

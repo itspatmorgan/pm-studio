@@ -1,14 +1,16 @@
-// A visual's own page (/visuals/<id>/iterations/<version>), beside its navigation: where you look at its versions,
-// compare them, and decide. The navigation is the list of versions (nav.tsx: status, selected first); picking one there
-// puts it here, and its address is the version's own.
+// A visual project's own page, beside its navigation, which lists the project's pieces, each with its versions
+// (nav.tsx: status, selected first).
 //
-// - The stage shows the version large, playing, at its true shape. ← and → step through the versions.
-// - Compare pins the version on stage and puts the next one you pick beside it, from the navigation or with the arrow
-//   keys, so you can cycle candidates against the one you like.
-// - The panel on the right is the decision: the version's status and your note on it, saved to _iterations.json through
-//   the module's route (server.ts), and a prompt to make the next version from it, for the agent.
+// - At the project's address (/visuals/<project>) it shows the project: its pieces in the project's order, each at its
+//   lead version. A project of one piece opens that piece.
+// - At a version's address (/visuals/<project>/<piece>/v03) it shows that piece: the version large, playing, at its true
+//   shape. ← and → step through the piece's versions. Compare pins the version on stage and puts the next one you pick
+//   beside it, from the navigation or with the arrow keys, so you can cycle candidates against the one you like.
+// - The panel on the right, which folds away from the header, is the decision: the version's status and your note on
+//   it, saved to _iterations.json through the module's route (server.ts), DialKit's dials when the version has them, and
+//   a prompt to make the next version from it, for the agent.
 //
-// Performance: only the stage plays. The visual's address alone (/visuals/<id>) opens its lead version.
+// Performance: only the stage plays; the project's tiles play while pointed at.
 import { useEffect, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -25,8 +27,8 @@ import { callModule, canChangePrototype, contribution, useManifest, useMe } from
 import { cn } from '#studio/runtime';
 import { Button, Textarea, toast } from '#studio/components';
 import { FORMATS } from './lib/formats.ts';
-import { Live, data, useSize, versionHref, versionName } from './shared.tsx';
-import { type Status, type VisualEntry, type VisualVersion } from './visuals.ts';
+import { Live, Tiles, data, piecesOf, useOrigins, useSize, useStable, versionHref, versionName } from './shared.tsx';
+import type { Status, VisualEntry, VisualProject, VisualVersion } from './visuals.ts';
 
 const LABEL: Record<Status, string> = {
   exploring: 'Exploring',
@@ -45,8 +47,8 @@ const DOT: Record<Status, string> = {
 
 // Changes one version's status or note through the module's own route (server.ts), which edits only that version's entry
 // in _iterations.json, so whatever an agent wrote to the others stays.
-const saveRecord = (visual: string, version: string, change: { status?: Status; note?: string }) =>
-  callModule('visuals', 'record', { visual, version, ...change });
+const saveRecord = (project: string, version: string, change: { status?: Status; note?: string }) =>
+  callModule('visuals', 'record', { project, version, ...change });
 
 function useSave(proto: Prototype) {
   const [saving, setSaving] = useState(false);
@@ -99,12 +101,14 @@ function Fitted({
 }
 
 function Decision({
+  project,
   visual,
   version,
   proto,
   editable,
   tunable,
 }: {
+  project: VisualProject;
   visual: VisualEntry;
   version: VisualVersion;
   proto: Prototype;
@@ -118,7 +122,7 @@ function Decision({
   useEffect(() => setNote(version.note ?? ''), [version.studioId, version.note]);
   const dirty = note.trim() !== (version.note ?? '');
   const next = `v${String(visual.versions.length + 1).padStart(2, '0')}`;
-  const prompt = `Make ${next} of the visual "${visual.title}" (src/visuals/${visual.id}) from ${versionName(version)}${
+  const prompt = `Make ${next} of "${visual.title}", a piece of the visual project ${project.title} (src/visuals/${visual.id}/), from ${versionName(version)}${
     note.trim() ? `: ${note.trim()}` : '.'
   }`;
   return (
@@ -226,6 +230,65 @@ function Decision({
   );
 }
 
+export function VisualPage({ proto, item }: { proto: Prototype; item?: Artifact }) {
+  const manifest = useManifest();
+  const index = data(manifest);
+  const navigate = useNavigate();
+  const project = index?.projects.find(p => p.id === proto.id);
+  const pieces = index && project ? piecesOf(index, project).filter(p => p.versions.length) : [];
+  const piece = item && pieces.find(p => p.versions.some(v => v.path === item.path));
+  // A project of one piece is that piece, so its address opens the piece.
+  const only = !item && pieces.length === 1 ? pieces[0] : undefined;
+  useEffect(() => {
+    if (only) void navigate({ to: versionHref(only) as never, replace: true });
+  }, [only, navigate]);
+  if (!index || !project || only) return null;
+  if (piece) return <PiecePage key={piece.id} project={project} visual={piece} item={item!} proto={proto} />;
+  return <ProjectPage project={project} pieces={pieces} />;
+}
+
+// The project: its pieces in its order, each at its lead version, under the project's name.
+function ProjectPage({ project, pieces }: { project: VisualProject; pieces: VisualEntry[] }) {
+  const manifest = useManifest();
+  const index = data(manifest)!;
+  const stable = useStable(pieces);
+  const origins = useOrigins(manifest, stable);
+  const [area, { width }] = useSize<HTMLDivElement>();
+  const versions = pieces.reduce((n, p) => n + p.versions.length, 0);
+  return (
+    <main className='min-w-0 flex-1 overflow-y-auto'>
+      <div className='mx-auto w-full max-w-5xl px-6 pt-8 pb-16'>
+        <header className='mb-6'>
+          <h1 className='text-lg font-semibold tracking-tight text-foreground'>{project.title}</h1>
+          <p className='mt-0.5 text-sm text-muted-foreground'>
+            {[project.line, `${pieces.length} pieces`, `${versions} ${versions === 1 ? 'version' : 'versions'}`].join(' · ')}
+          </p>
+        </header>
+        <div ref={area}>
+          <Tiles
+            items={pieces.map(p => ({
+              key: p.id,
+              visual: p,
+              href: versionHref(p),
+              title: p.title,
+              line: [
+                index.families.find(f => f.id === p.family)?.label,
+                p.versions.length > 1 ? `${p.versions.length} versions` : '',
+                p.selected ? '' : 'Needs a decision',
+              ]
+                .filter(Boolean)
+                .join(' · '),
+            }))}
+            origins={origins}
+            width={width}
+            row={200}
+          />
+        </div>
+      </div>
+    </main>
+  );
+}
+
 // Whether the details panel is open, remembered in this browser: Studio often runs beside a coding harness, so the stage
 // can take the whole width.
 const PANEL = 'visuals:details';
@@ -237,9 +300,19 @@ const readPanel = () => {
   }
 };
 
-export function VisualPage({ proto, item }: { proto: Prototype; item?: Artifact }) {
+function PiecePage({
+  project,
+  visual,
+  item,
+  proto,
+}: {
+  project: VisualProject;
+  visual: VisualEntry;
+  item: Artifact;
+  proto: Prototype;
+}) {
   const manifest = useManifest();
-  const index = data(manifest);
+  const index = data(manifest)!;
   const [panel, setPanel] = useState(readPanel);
   const togglePanel = () =>
     setPanel(open => {
@@ -250,27 +323,20 @@ export function VisualPage({ proto, item }: { proto: Prototype; item?: Artifact 
     });
   const me = useMe();
   const navigate = useNavigate();
-  const visual = index?.visuals.find(v => v.id === proto.id);
-  const versions = visual?.versions ?? [];
-  const lead = visual?.selected ?? versions.at(-1);
-  const current = versions.find(v => v.path === item?.path);
+  const versions = visual.versions;
+  const current = versions.find(v => v.path === item.path)!;
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [stage, size] = useSize<HTMLDivElement>();
-  const at = current ? versions.indexOf(current) : -1;
+  const at = versions.indexOf(current);
   const pinned = versions.find(v => v.studioId === pinnedId);
-  const open = (version: VisualVersion, replace = false) =>
-    visual && void navigate({ to: versionHref(visual, version) as never, replace });
-  // The visual's own address opens its lead version, so the navigation always shows which one is on stage.
-  useEffect(() => {
-    if (visual && lead && !current) open(lead, true);
-  });
-  // ← and → step through the versions, unless you're typing.
+  const open = (version: VisualVersion) => void navigate({ to: versionHref(visual, version) as never });
+  // ← and → step through the piece's versions, unless you're typing.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
       if (target.closest('input, textarea, [contenteditable]') || event.metaKey || event.ctrlKey || event.altKey) return;
       const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-      if (step && versions.length > 1 && at >= 0) {
+      if (step && versions.length > 1) {
         event.preventDefault();
         open(versions[(at + step + versions.length) % versions.length]!);
       }
@@ -279,13 +345,11 @@ export function VisualPage({ proto, item }: { proto: Prototype; item?: Artifact 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   });
-  if (!index || !visual || !current) return null;
   const family = index.families.find(f => f.id === visual.family);
-  const collections = visual.collections.map(id => index.collections.find(c => c.id === id)?.label ?? id);
   const editable = import.meta.env.DEV && canChangePrototype(proto, me);
   // DialKit's build lists the views that use it; null while DialKit is off.
   const dials = contribution<{ views: string[] }>(manifest, 'dialkit');
-  const tunable = dials ? dials.views.includes(`src/visuals/${visual.id}/${current.path}`) : null;
+  const tunable = dials ? dials.views.includes(`src/visuals/${project.id}/${current.path}`) : null;
   const comparing = Boolean(pinned && pinned.studioId !== current.studioId);
   const shown = comparing ? [pinned!, current] : [current];
   const pad = 32;
@@ -309,7 +373,7 @@ export function VisualPage({ proto, item }: { proto: Prototype; item?: Artifact 
           <div className='min-w-0'>
             <h1 className='truncate text-lg font-semibold tracking-tight text-foreground'>{visual.title}</h1>
             <p className='mt-0.5 truncate text-sm text-muted-foreground'>
-              {[family?.label, ...collections, `${versions.length} ${versions.length === 1 ? 'version' : 'versions'}`]
+              {[project.title, family?.label, `${versions.length} ${versions.length === 1 ? 'version' : 'versions'}`]
                 .filter(Boolean)
                 .join(' · ')}
             </p>
@@ -376,7 +440,7 @@ export function VisualPage({ proto, item }: { proto: Prototype; item?: Artifact 
           {hint && <p className='absolute bottom-4 left-0 w-full text-center text-xs text-muted-foreground'>{hint}</p>}
         </div>
       </div>
-      {panel && <Decision visual={visual} version={current} proto={proto} editable={editable} tunable={tunable} />}
+      {panel && <Decision project={project} visual={visual} version={current} proto={proto} editable={editable} tunable={tunable} />}
     </main>
   );
 }
