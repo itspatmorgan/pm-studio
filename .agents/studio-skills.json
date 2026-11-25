@@ -113,14 +113,6 @@
       "kind": "link",
       "hash": "1a72f6a36656836f44f22f4a536dddbc642d4654d1a7dae3b506b27518a0a4ee"
     },
-    ".agents/skills/studio-module-snapshots-use-snapshots/SKILL.md": {
-      "kind": "file",
-      "hash": "53d907efbcc381479b698d02f7348fca87254ec355a6b331ac5c49968279ea42"
-    },
-    ".claude/skills/studio-module-snapshots-use-snapshots": {
-      "kind": "link",
-      "hash": "a9027d0026b863bd8782afe67fb12ac157fd0564e7fa58e0e7059a676d72e65c"
-    },
     ".agents/skills/studio-module-systems-document-component/SKILL.md": {
       "kind": "file",
       "hash": "8f6a7adefe4c804776c40cf6585c8f4119b6ec90b118354f3bee579e3ff9917f"

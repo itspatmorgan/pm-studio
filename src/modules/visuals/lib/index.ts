@@ -3,4 +3,5 @@
 // entry serves while the module is off (off.ts).
 export { FORMATS, aspectOf, formatOf, type Format, type FormatId } from './formats';
 export { Frame } from './Frame';
+export { Stage } from './Stage';
 export { defineVisual, type VisualMeta } from './visual';

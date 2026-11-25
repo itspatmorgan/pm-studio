@@ -5,7 +5,7 @@ import { compatible } from '../../core/modules';
 import { FILE_TYPES } from '../data/fileTypeSpecs';
 import { artifactAvailability, type EmbedSurface, type HostSurfaceSpec } from '../../core/fileTypes';
 import { parsePrototypeAddress } from '../../core/resourceIdentity';
-import { isSectionKey } from '../../core/roots';
+import { SYSTEM_CONTENT_KEY } from '../../core/roots';
 import { allPrototypes, loadManifest, withItems } from '../data/manifest';
 import type { ArtifactContext } from '../data/fileTypeModule';
 import type { Manifest, Prototype, PrototypeRef } from '../data/types';
@@ -48,7 +48,10 @@ const same = (a: PrototypeRef, b: PrototypeRef) =>
 function locate(request: ArtifactRequest, manifest: Manifest) {
   const origin = allPrototypes(manifest).find(p => same(p, request.origin.proto));
   if (!origin) return { error: unavailable('unavailable', 'The origin prototype is unavailable.') };
-  const scope: 'prototype' | 'systemContent' = isSectionKey(origin.contributorKey) ? 'systemContent' : 'prototype';
+  // A module's section of prototype-shaped folders holds prototypes, so only the systems' own content is systemContent,
+  // as the item page and the source editor decide it.
+  const scope: 'prototype' | 'systemContent' =
+    origin.contributorKey === SYSTEM_CONTENT_KEY ? 'systemContent' : 'prototype';
   const host = hosts.find(h => h.id === request.surface);
   if (!host) return { error: unavailable('unsupported_surface', 'This artifact host is unavailable.') };
   if (!host.scopes.includes(scope))
