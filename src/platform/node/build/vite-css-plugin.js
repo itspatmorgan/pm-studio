@@ -21,7 +21,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.
 const STYLESHEET = path.join(ROOT, 'src', 'platform', 'app', 'styles.css');
 const packageProblem = () => scopePolicy({ root: ROOT, systems: PROTOTYPE_SYSTEMS, modules: [] }).packageProblem;
 // Where each system's theme loads from: theme.css as written, or its fitted copy (src/platform/node/lib/css-fit.js).
-const themeOf = spec =>
+/** A system's theme as Studio uses it: fitted when the system declares cssFitting 'fit', with its tokens flattened. */
+export const themeOf = spec =>
   systemTheme({ root: ROOT, spec, packageProblem: spec.role === 'platform' ? undefined : packageProblem() });
 export function inventories(deploy = false) {
   return Object.entries(SYSTEM_SPECS)

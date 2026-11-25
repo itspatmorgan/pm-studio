@@ -15,13 +15,13 @@ The `_data/` modules are generated; edit the script, not its output. Words a pag
 
 ## Case study demos
 
-The scene player, every case study and Design Studio demo, and the theme hooks come from `@itspatmorgan/kit`: move the kit's pinned commit in `package.json` and run `pnpm install` (see the Shared kit section in [Library](../../context/library.md)). Nothing is copied by hand. If a demo needs a change for Studio, make it in the site's `packages/kit`, where the tests check Studio's TypeScript and CSS rules.
+The scene player, every case study and Design Studio demo, and the theme hooks come from `@itspatmorgan/kit`: move the kit's pinned commit in `package.json` and run `pnpm install` (see the Shared kit section in [Library](../../context/library.md)). Nothing is copied by hand. If a demo needs a change for Studio, make it in the site's `packages/kit`, where the tests check the kit's TypeScript and imports.
 
-The pieces still ported by hand are the site's Astro components rewritten in React (`StudioQuote`, `StudioPress`, `StudioLesson`, the shared site pieces) and page-level stylesheets such as `styles/site/ds-landing.css`. For a changed page stylesheet, run `node scripts/sync-from-site/scope-css.mjs <site css> styles/site/<name>.css`. It scopes every selector to `.website-theme`, maps `.dark` to the theme boundary's dark mode, prefixes keyframes, and wraps sibling selectors in `:is()` for Studio's scope check. Then run `pnpm check` and the TypeScript build.
+The pieces still ported by hand are the site's Astro components rewritten in React (`StudioQuote`, `StudioPress`, `StudioLesson`, the shared site pieces) and the page styles the site writes in `<style>` blocks, kept in `styles/site/`. Copy a changed `<style>` block into its file as written: Studio fits it to the Website theme (`cssFitting: 'fit'` in `system.ts`), mapping `:root` and `.dark` to the theme boundary, scoping every selector and prefixing keyframes. Then run `pnpm check` and `pnpm build`, which report anything that can't be fitted.
 
 ## Tokens
 
-After moving the kit pin, run `node scripts/sync-from-site/tokens.mjs`. It copies the site's color, radius, and motion tokens from the kit into `styles/theme.css`, light and dark, and leaves the rest of the file alone. `--check` reports drift without writing.
+Nothing to copy: `styles/theme.css` imports the kit's `tokens.css`, so moving the kit pin brings the site's colors, radius, and motion with it.
 
 ## Verify
 

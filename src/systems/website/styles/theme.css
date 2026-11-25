@@ -1,19 +1,10 @@
-/* itspatmorgan.com tokens. Colors, the base radius and motion come from the shared kit's tokens.css: run
-   node scripts/sync-from-site/tokens.mjs after moving the kit pin, rather than editing those values here. */
+/* itspatmorgan.com's theme. Colors, the base radius and motion come from the shared kit's tokens.css, the same file the site
+   imports; Studio fits its :root and .dark rules to this theme (cssFitting: 'fit' in system.ts). The kit's components import
+   their own stylesheets. Type, spacing and widths below are Tailwind's defaults, limited to the steps the site uses. */
+@import "@itspatmorgan/kit/tokens.css";
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
-/* Case study scenes and product demos, ported from the site's component stylesheets (styles/site/). */
-@import "@itspatmorgan/kit/studio/case-study.css";
-@import "@itspatmorgan/kit/studio/project-card.css";
-@import "@itspatmorgan/kit/studio/sublime.css";
-@import "@itspatmorgan/kit/studio/query-builder.css";
-@import "@itspatmorgan/kit/studio/expansion.css";
-@import "@itspatmorgan/kit/studio/linework.css";
-@import "@itspatmorgan/kit/studio/studio-card.css";
-@import "@itspatmorgan/kit/studio/studio-hero.css";
-@import "@itspatmorgan/kit/studio/studio-shapes.css";
-@import "@itspatmorgan/kit/studio/explore.css";
-@import "@itspatmorgan/kit/studio/studio-case.css";
+/* Page styles the site writes in its .astro files, ported as written (styles/site/). */
 @import "./site/studio-case-astro.css";
 @import "./site/ds-landing.css";
 @font-face {
@@ -22,25 +13,7 @@
   font-display: swap;
 }
 .website-theme {
-  /* Color: warm, minimal, cream-tinted. */
-  --background: oklch(0.98 0.004 80);
-  --foreground: oklch(0.15 0.01 60);
-  --card: oklch(0.96 0.005 80);
-  --card-foreground: oklch(0.15 0.01 60);
-  --popover: oklch(0.98 0.004 80);
-  --popover-foreground: oklch(0.15 0.01 60);
-  --primary: oklch(0.15 0.01 60);
-  --primary-foreground: oklch(0.98 0.004 80);
-  --secondary: oklch(0.94 0.006 80);
-  --secondary-foreground: oklch(0.25 0.01 60);
-  --muted: oklch(0.94 0.006 80);
-  --muted-foreground: oklch(0.50 0.01 60);
-  --accent: oklch(0.72 0.10 75);
-  --accent-foreground: oklch(0.15 0.01 60);
-  --destructive: oklch(0.58 0.22 27);
-  --border: oklch(0.90 0.008 80);
-  --input: oklch(0.90 0.008 80);
-  --ring: oklch(0.72 0.10 75);
+  /* Black and white for color utilities; the palette comes from the kit tokens. */
   --color-black: #000;
   --color-white: #fff;
 
@@ -78,7 +51,6 @@
   --leading-relaxed: 1.625;
 
   /* Shape: one radius scale from --radius (0.5rem). */
-  --radius: 0.5rem;
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -96,14 +68,6 @@
   --blur-sm: 8px;
 
   /* Motion: easing curves shared by the site, cards and demos. Route transitions stay under ~250ms. */
-  --motion-ease-out: cubic-bezier(.22, 1, .36, 1);
-  --motion-ease-out-quick: cubic-bezier(.23, 1, .32, 1);
-  --motion-ease-in-out: cubic-bezier(.65, 0, .35, 1);
-  --motion-ease-standard: cubic-bezier(.4, 0, .2, 1);
-  --motion-ease-travel: cubic-bezier(.45, 0, .1, 1);
-  --motion-ease-arrival: cubic-bezier(.25, .8, .25, 1);
-  --motion-route-out: 90ms;
-  --motion-route-in: 180ms;
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
   --default-transition-duration: 150ms;
@@ -158,27 +122,6 @@
   background: var(--background);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-.website-theme[data-color-mode="dark"] {
-  /* Rich warm black. */
-  --background: oklch(0.14 0.01 60);
-  --foreground: oklch(0.92 0.01 80);
-  --card: oklch(0.18 0.01 60);
-  --card-foreground: oklch(0.92 0.01 80);
-  --popover: oklch(0.18 0.01 60);
-  --popover-foreground: oklch(0.92 0.01 80);
-  --primary: oklch(0.92 0.01 80);
-  --primary-foreground: oklch(0.14 0.01 60);
-  --secondary: oklch(0.22 0.01 60);
-  --secondary-foreground: oklch(0.88 0.01 80);
-  --muted: oklch(0.22 0.01 60);
-  --muted-foreground: oklch(0.72 0.01 60);
-  --accent: oklch(0.75 0.10 75);
-  --accent-foreground: oklch(0.14 0.01 60);
-  --destructive: oklch(0.70 0.19 22);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.75 0.10 75);
 }
 .website-theme :where(*) {
   border-color: var(--border);
